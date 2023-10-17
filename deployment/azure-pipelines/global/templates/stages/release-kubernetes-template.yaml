@@ -1,0 +1,33 @@
+# Stage template runs plan for kubernetes state and is parameterized by environment.
+parameters:
+  - name: envShortCode
+    type: string
+    displayName: "Environment of the job (short code format: dev/qa/stage/prod)"
+    default: "dev"
+    values:
+      - dev
+      - qa
+      - stage
+      - prod
+stages:
+  - stage: deploy_${{ parameters.envShortCode }}_kubernetes
+    dependsOn: terraform_plan_${{ parameters.envShortCode }}_kubernetes
+    displayName: "Deploy - ${{ parameters.envShortCode }} - kubernetes"
+    variables:
+      - template: "../../vars/${{ parameters.envShortCode }}-vars.yaml"
+    jobs:
+      - template: "../jobs/infra-release-template.yaml"
+        parameters:
+          envShortCode: ${{ parameters.envShortCode }}
+          subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+          stateFile: "${{ variables.stateFileKubernetes }}"
+          workDir: "$(System.DefaultWorkingDirectory)"
+          buildId: "$(Build.BuildId)"
+          pathToTFCode: "infrastructure/kubernetes"
+          buildAgentName: "${{ variables.selfBuildAgentName }}"
+          azureDevOpsEnvironment: "${{ variables.azureDevOpsEnvironment }}"
+          stateDisplayName: kubernetes
+      - template: "../jobs/tag-template.yaml"
+        parameters:
+          tagString: "tracing/${{ parameters.envShortCode }}/kubernetes/$(currentTimeStamp)_$(Build.SourceBranchName)"
+          dependson: "deploy_azure_resources"

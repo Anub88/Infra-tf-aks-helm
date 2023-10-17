@@ -1,0 +1,173 @@
+{{- if .Values.supervisor.enabled -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "usecase-model.fullname" . }}
+  labels:
+    {{- include "usecase-model.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      {{- include "usecase-model.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "usecase-model.fullname" . }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        {{- include "usecase-model.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "usecase-model.fullname" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      automountServiceAccountToken: false  ##Service Account Tokens are only mounted where necessary
+      containers:
+        # Usecase Container
+        - name: {{ .Values.usecaseName }}-model
+          image: "{{ .Values.registry }}/aixs-usecase-{{ .Values.usecaseName }}:{{ .Values.usecaseTag }}"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: {{ .Values.usecaseServicePort }}
+              protocol: TCP
+          volumeMounts:
+            - name: cache
+              mountPath: /cache
+          {{- if or $.Values.usecaseEnviromentVariables $.Values.usecaseEnviromentSecrets }}
+          env:
+            {{- range $key, $value := $.Values.usecaseEnviromentVariables }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range $key, $secret := $.Values.usecaseEnviromentSecrets }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.fullnameOverride }}-secret
+                  key: {{ $key | quote }}
+            {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.usecaseResources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port:  {{ .Values.usecaseServicePort }}
+            initialDelaySeconds: 20
+            periodSeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port:  {{ .Values.usecaseServicePort }}
+            initialDelaySeconds: 20
+            periodSeconds: 60
+        # Supervisor Container
+        - name: {{ .Values.usecaseName }}-supervisor
+          image: "{{ .Values.registry }}/aixs-core-supervisor:{{ .Values.supervisor.tag }}"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: {{ .Values.supervisor.servicePort }}
+              protocol: TCP
+          volumeMounts:
+            - name: cache
+              mountPath: /cache
+          {{- if $.Values.supervisor.enviromentVariables }}
+          env:
+            {{- range $key, $value := $.Values.supervisor.enviromentVariables }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.supervisor.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port:  {{ .Values.supervisor.servicePort }}
+            initialDelaySeconds: 20
+            periodSeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port:  {{ .Values.supervisor.servicePort }}
+            initialDelaySeconds: 20
+            periodSeconds: 60
+      volumes:
+        - name: cache
+          emptyDir: 
+            sizeLimit: {{ .Values.sizeLimit }}
+      nodeSelector:
+        agentpool: {{ .Values.agentpool }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- else }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "usecase-model.fullname" . }}
+  labels:
+    {{- include "usecase-model.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      {{- include "usecase-model.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "usecase-model.fullname" . }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        {{- include "usecase-model.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "usecase-model.fullname" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        # Usecase Container
+        - name: usecase-{{ .Values.usecaseName }}-model
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.registry }}/{{ .Values.usecaseRepository }}:{{ required ".Values.usecaseTag is required." .Values.usecaseTag}}"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: {{ .Values.usecaseServicePort }}
+              protocol: TCP
+          volumeMounts:
+            - name: cache
+              mountPath: /cache
+          {{- if $.Values.usecaseEnviromentVariables }}
+          env:
+            {{- range $key, $value := $.Values.usecaseEnviromentVariables }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.usecaseResources | nindent 12 }}    
+      volumes:
+        - name: cache
+          emptyDir: 
+            sizeLimit: {{ .Values.sizeLimit }}
+      nodeSelector:
+        agentpool: {{ .Values.agentpool }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

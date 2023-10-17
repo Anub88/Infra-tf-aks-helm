@@ -1,0 +1,98 @@
+parameters :
+  - name: repository
+    type: string
+    displayName: "The repository from which to build the model"
+    default : "iaa-shared-odx"
+
+  - name : metadatayml
+    type : string
+    displayName: "metadata yaml file name"
+    default : "inference_metadata_bscanofinterest.yml"
+
+  - name : modelregistry
+    type : string
+    displayName: "model registry name"
+    default : "alpine"
+
+  - name : modeltag
+    type : string
+    displayName: "model tag (version)"
+    default : "latest"
+
+variables:
+  majorMinorVersion: 0.0
+  semanticVersion: 0
+  BuildConfiguration: 'Release'
+
+name: $(majorMinorVersion).$(semanticVersion).$(rev:r)
+
+trigger: none
+
+resources:
+ repositories:
+  - repository: iaa-shared-odx
+    type: git
+    name: GEN_Health_Data_Platform/iaa-shared-odx
+    ref: development
+
+stages:
+  - stage: Build
+    jobs:
+    - template : "templates/mlware-infer-app-model-discovery-build-docker-template.yaml"
+      parameters:
+        repository: ${{parameters.repository}}
+        metadatayml: ${{parameters.metadatayml}}
+        modelregistry: ${{parameters.modelregistry}}
+        modeltag: ${{parameters.modeltag}}
+        buildid: $(Build.BuildNumber)
+
+  - stage: Dev_Deployment
+    jobs:
+    - template : "templates/mlware-infer-app-model-discovery-push-docker-template.yaml"
+      parameters:
+        serviceConnection: acr-aixs-dev-serviceconnection
+        envShortCode: "dev"
+        environment: "iaa - Development"
+        acrname: "acrmlwsdevweus"
+        modelregistry: ${{parameters.modelregistry}}
+        modeltag: ${{parameters.modeltag}}
+        buildid: $(Build.BuildNumber)
+    dependsOn: "Build"
+
+  - stage: QA_Deployment
+    jobs:
+    - template : "templates/mlware-infer-app-model-discovery-push-docker-template.yaml"
+      parameters:
+        serviceConnection: acr-aixs-qa-serviceconnection
+        envShortCode: "qa"
+        environment: "iaa - qa"
+        acrname: "acrmlwsqaweus"
+        modelregistry: ${{parameters.modelregistry}}
+        modeltag: ${{parameters.modeltag}}
+        buildid: $(Build.BuildNumber)
+    dependsOn: "Dev_Deployment"
+
+  - stage: StageBuild
+    jobs:
+    - template : "templates/mlware-infer-app-model-discovery-build-docker-template.yaml"
+      parameters:
+        repository: ${{parameters.repository}}
+        metadatayml: ${{parameters.metadatayml}}
+        modelregistry: ${{parameters.modelregistry}}
+        modeltag: ${{parameters.modeltag}}
+        buildagent: "IAA-BuildAgent-Stage"
+        buildid: $(Build.BuildNumber)
+
+  - stage: Stage_Deployment
+    jobs:
+    - template : "templates/mlware-infer-app-model-discovery-push-docker-template.yaml"
+      parameters:
+        serviceConnection: acr-aixs-stage-serviceconnection
+        envShortCode: "stage"
+        environment: "iaa - stage"
+        acrname: "acrmlwsstageweus"
+        modelregistry: ${{parameters.modelregistry}}
+        buildagent: "IAA-BuildAgent-Stage"
+        modeltag: ${{parameters.modeltag}}
+        buildid: $(Build.BuildNumber)
+    dependsOn: "StageBuild"    

@@ -1,0 +1,74 @@
+# Public Helm chart bitnami/nginx - nginx-data-proxy
+## Docs: https://github.com/bitnami/charts/tree/main/bitnami/nginx
+##
+
+# Helm bitnami/nginx Config ---------------
+## @param fullname, namespace, replica, node Service type
+fullnameOverride: "zeissid-api-proxy"
+namespaceOverride: ""
+replicaCount: 1
+nodeSelector: {
+    agentpool: "default"
+}
+
+## @param image.specification
+image:
+  registry: docker.io
+  repository: bitnami/nginx
+  tag: 1.23.3-debian-11-r26
+  digest: ""
+  ## Specify a imagePullPolicy
+  ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
+  pullPolicy: Always
+
+service:
+  ## @param service.type Service type
+  type: LoadBalancer
+  ## @param service.ports.http Service HTTP port
+  ## @param service.ports.https Service HTTPS port
+  ports:
+    http: 80
+    https: 443
+  ## @param service.annotations Service annotations
+  annotations:
+    ## @param annotation internal load balancer - AKS
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+
+## Configures the ports NGINX listens on
+## @param containerPorts.http Sets http port inside NGINX container
+## @param containerPorts.https Sets https port inside NGINX container
+containerPorts:
+  http: 8888
+  https: ""
+
+resources:
+    limits:
+      memory: 200Mi
+      cpu: 500m
+    requests:
+      memory: 100Mi
+      cpu: 100m
+
+zeissIdApiDomain: ""
+
+## NGINX configuration - https://nginx.org/en/docs/http/ngx_http_core_module.html#directives
+## @param serverBlock Custom server block to be added to NGINX configuration
+serverBlock: |-
+    server {
+      listen 8888;
+      server_name {{ .Values.zeissIdApiDomain }};
+
+      location /V1.0/Device/Authentication/AcquireToken/ {
+        proxy_pass https://{{ .Values.zeissIdApiDomain }};
+        proxy_redirect {{ .Values.zeissIdApiDomain }}/ $scheme://$host:8080/;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        # NO CACHING
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;
+      }
+    }

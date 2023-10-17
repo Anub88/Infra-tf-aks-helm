@@ -1,0 +1,33 @@
+parameters:
+  - name: srcDirectory
+    type: string
+    displayName: "Service Directory"
+  - name: testDirectory
+    type: string
+    displayName: "Test Directory"
+
+# Example:
+# srcDirectory = inference/service_model_lookup/mlware_model_lookup/
+# testDirectory = inference/service_model_lookup/tests/
+
+steps:
+  # Works
+  - script: |
+      python -m pip install -U --upgrade-strategy=eager pylint pytest pytest-azurepipelines pytest-cov
+    displayName: 'Assure test packages are present'
+  # - bash: |
+  #     pylint $(System.DefaultWorkingDirectory)/application/${{parameters.srcDirectory}} $(System.DefaultWorkingDirectory)/application/${{parameters.testDirectory}}
+  #   displayName: "Linting: pylint"
+  #   failOnStderr: false
+  #   continueOnError: true
+  - bash: |
+      echo $(System.DefaultWorkingDirectory)
+      echo ${{parameters.srcDirectory}}
+      echo $PWD
+    displayName: "Debug"
+  - bash: |
+      pylint --recursive=y '${{parameters.srcDirectory}}' --ignore=.python_packages
+    displayName: "Linting: pylint"
+    failOnStderr: false
+    continueOnError: true
+  

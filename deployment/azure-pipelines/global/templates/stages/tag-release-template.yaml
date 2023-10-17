@@ -1,0 +1,35 @@
+# Generic stage template for all environments.
+# Tags complete infrastructure releases.
+parameters:
+  - name: envShortCode
+    type: string
+    displayName: "Environment of the job (short code format: dev/qa/stage/prod)"
+    default: "dev"
+    values:
+      - dev
+      - qa
+      - stage
+      - prod
+
+stages:
+  - stage: tag_release_${{ parameters.envShortCode }}
+    displayName: "Tag - ${{ parameters.envShortCode }}"
+    ${{ if not(eq(parameters.envShortCode, 'qa')) }}:
+      dependsOn:
+        - deploy_${{ parameters.envShortCode }}_apimgmt
+        - deploy_${{ parameters.envShortCode }}_mlware
+        - deploy_${{ parameters.envShortCode }}_buildagent
+        - deploy_${{ parameters.envShortCode }}_shared
+        - deploy_${{ parameters.envShortCode }}_s2s_appregistrations
+    ${{ else }}:
+      dependsOn:
+        - deploy_qa_apimgmt
+        - deploy_qa_mlware
+        - deploy_dev_buildagent
+        - deploy_dev_shared
+        - deploy_qa_s2s_appregistrations
+    jobs:
+      # APIManagement state.
+      - template: "../jobs/tag-template.yaml"
+        parameters:
+          tagString: "${{ parameters.envShortCode }}/$(currentTimeStamp)_$(Build.SourceBranchName)"

@@ -1,0 +1,18 @@
+# Plans for all states on the prod environment.
+
+name: $(Date:yyyyMMdd)$(Rev:.r)-infrastructure-plan-prod
+
+trigger: none
+
+stages:
+  - stage: check_terraform
+    displayName: Check Terraform
+    jobs:
+      - template: templates/jobs/checkov-template.yaml
+        parameters:
+          dir: "$(System.DefaultWorkingDirectory)"
+          failOnSecret: true
+  - template: "templates/stages/plan-states-template.yaml"
+    parameters:
+      envShortCode: "prod"
+      validate: true

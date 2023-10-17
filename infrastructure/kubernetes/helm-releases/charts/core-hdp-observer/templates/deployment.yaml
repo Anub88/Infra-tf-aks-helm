@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "core-hdp-observer.fullname" . }}
+  labels:
+    {{- include "core-hdp-observer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      {{- include "core-hdp-observer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+          dapr.io/enabled: "true"
+          dapr.io/app-id: {{ printf "%s-%s" .Release.Name .Values.env.ENV_STATE | quote }}
+          dapr.io/app-port: {{ .Values.port | quote }}
+          dapr.io/log-level: "debug"
+          dapr.io/enable-api-logging: "true"
+          dapr.io/sidecar-cpu-limit: "100m"
+          dapr.io/sidecar-memory-limit: "1000Mi"
+          dapr.io/sidecar-cpu-request: "50m"
+          dapr.io/sidecar-memory-request: "250Mi"
+          helm.sh/hook-delete-policy: "before-hook-creation,hook-succeeded"
+          helm.sh/hook: "post-install,post-upgrade"
+          seccomp.security.alpha.kubernetes.io/pod: "docker/default"
+      labels:
+        {{- include "core-hdp-observer.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "core-hdp-observer.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.registry }}/aixs-core-observer:{{ .Values.tag }}"
+          securityContext:  ##Apply Security Context to Your Pods and Containers
+            runAsNonRoot: true  ##Minimize the admission of privileged containers
+            readOnlyRootFilesystem: true   ##Container runtimes should only mount data volumes inside containers when absolutely necessary
+            runAsUser: 101
+            runAsGroup: 101 
+            #fsGroup: 101
+            allowPrivilegeEscalation: false
+            privileged: false  ##Minimize the admission of privileged containers/Monitoring service containers must not run in privileged mode or access the host
+            capabilities:      
+              drop: 
+              #  - NET_RAW     ##Minimize the admission of containers with the NET_RAW capability
+                - ALL          ##when drop includes ALL, all of the root privileges are disabled for that container/Minimize the admission of containers with added capabilities
+              allowed:         ## We can allow specific services which we need to allow in future if required. 
+                
+          imagePullPolicy: Always
+          {{- if or $.Values.env $.Values.envSecrets }}
+          env:
+            {{- range $key, $value := $.Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range $key, $secret := $.Values.envSecrets }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-secret
+                  key: {{ $key | quote }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.servicePort }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port:  {{ .Values.servicePort }}
+            initialDelaySeconds: 15
+            periodSeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port:  {{ .Values.servicePort }}
+            initialDelaySeconds: 15
+            periodSeconds: 60
+      nodeSelector:
+        agentpool: {{ .Values.agentpool }}
+
+

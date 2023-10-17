@@ -1,0 +1,146 @@
+asyncapi: 2.4.0
+info:
+  title: MLware Inference API
+  version: 1.0.0
+  description: This API specifies the asynchronous integration with MLware platform for processing AI inference
+  contact: 
+    name: DBU AI Team
+    email: dbu-ai-team@zeiss.com
+servers:
+  production:
+    url: "{stage}.mlware-url"
+    protocol: http
+    description: Server for processing inference events
+    security:
+      - bearer-token: []
+    variables:
+      stage:
+          $ref: "#/components/serverVariables/stage"
+channels:
+  inference/request:
+    publish:
+      message:
+        $ref: '#/components/messages/InferenceRequest'
+  inference/result:
+    subscribe:
+      message:
+        $ref: '#/components/messages/InferenceResult'
+components:
+  messages:
+    InferenceRequest:
+      summary: Action to request inference with MLware platform as CloudEvent
+      payload:
+        type: object
+        properties:
+          cloudevent: 
+            $ref: "#/components/schemas/CloudEvent"
+    InferenceResult:
+      summary: Action to receive inference results from MLware as  platform as CloudEvent
+      payload:
+        type: object
+        properties:
+          cloudevent:
+            $ref: "#/components/schemas/CloudEvent"
+  serverVariables:
+    stage:
+      default: staging
+      description: Environment of service
+  securitySchemes:
+    bearer-token:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CloudEvent:
+      description: CloudEvent schema
+      type: object
+      required:
+      - id
+      - source
+      - type
+      - specversion
+      - datacontenttype
+      - time
+      - data
+      - authtoken
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier for event
+        source:
+          type: string
+          format: url
+          description: URI for data source
+        type:
+          type: string
+          description: Action initiated
+        specversion:
+          type: string
+          format: semver
+          description: Version of the CloudEvent specification
+        datacontenttype: 
+          type: string
+          format: application/json
+          description: The payload format of the CloudEvent
+        time:
+          type: string
+          format: data-time
+          description: Timestamp of event generated
+        data:
+          $ref: "#/components/schemas/InferenceReference"
+      example:
+        id: "00787b85-6785-44df-86fa-a3b44f372738"
+        source: "source-application"
+        type: "com.zeiss.meditec.mlware.inference.actiontype"
+        specversion: "1.0"
+        datacontenttype: "application/json"
+        time: "2022-04-12T23:20:50.52Z"
+        data:
+          authtoken: "bjebkjbxnmvbkjdbhfkjbasjbfjkbdsvhbdshmbvcmhb"
+          clientappid: "d9212d87-5010-4042-a3ab-a62ceeb1cba9"
+          datareferencebaseurl: "dev.mlware-url"
+          datareferences: 
+            - e70287a1-1987-4c36-9f9e-f11f4361dcc4
+            - c55b5c8f-d1d7-4845-b850-1da81ad21f53
+            - 64088688-722e-4c68-be90-ca7f5f88790b
+          correlationid: "a138321e-f4d3-4861-b681-76dbd6ea4ffa"
+          modelreference: "20f598d4-e2c3-4f48-b117-c893c0c276ba"
+          spanid: "62b7e135-d86e-4001-8411-b421eabc92e2"
+    InferenceReference:
+      description: Inference reference schema
+      type: object
+      additionalProperties: false
+      properties:
+        authtoken:
+          type: string
+        clientappid:
+          type: string
+          format: uuid
+        datareferencebaseurl: 
+          type: string
+          format: url
+        datarefernces:
+          type: string
+          format: uuid
+        correlationid: 
+          type: string
+          format: uuid
+        modelreference:
+          type: string
+          format: uuid
+        spanid:
+          type: string
+          format: uuid
+      example:
+        authtoken: "bjebkjbxnmvbkjdbhfkjbasjbfjkbdsvhbdshmbvcmhb"
+        clientappid: "d9212d87-5010-4042-a3ab-a62ceeb1cba9"
+        datareferencebaseurl: "dev.mlware-url"
+        datareferences: 
+          - e70287a1-1987-4c36-9f9e-f11f4361dcc4
+          - c55b5c8f-d1d7-4845-b850-1da81ad21f53
+          - 64088688-722e-4c68-be90-ca7f5f88790b
+        correlationid: "a138321e-f4d3-4861-b681-76dbd6ea4ffa"
+        modelreference: "20f598d4-e2c3-4f48-b117-c893c0c276ba"
+        spanid: "62b7e135-d86e-4001-8411-b421eabc92e2"

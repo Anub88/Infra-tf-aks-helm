@@ -1,0 +1,27 @@
+variables:
+  - name: envShortCode
+    value: pen
+  - name: subscriptionShortCode
+    value: stage
+  - name: stateFileKubernetes
+    value: "st-tf-kubernetes-pen-weus.tfstate"
+  - name: stateFileMlware
+    value: "st-tf-pen-weus.tfstate"
+  - name: stateFileShared
+    value: "st-tf-shared-weus.tfstate"
+  - name: stateFileApim
+    value: "st-tf-apim-pen-weus.tfstate"
+  - name: stateFileappregistrations
+    value: "st-tf-appregistrations-pen-weus.tfstate"
+  - name: stateFileBuildAgent
+    value: "rg-blagnt-common.tfstate"
+  - name: azureDevOpsEnvironmentShared
+    value: "iaa - Shared"
+  - name: azureDevOpsEnvironment
+    value: "iaa - pen"
+  - name: managedBuildAgentName
+    value: ubuntu
+  - name: selfBuildAgentName
+    value: IAA-BuildAgent-stage
+  - name: stateFilecustomconfig
+    value: "st-tf-customconfig-pen-weus.tfstate"

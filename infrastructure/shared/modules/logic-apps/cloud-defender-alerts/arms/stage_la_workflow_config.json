@@ -1,0 +1,100 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "logic_app_name": {
+            "defaultValue": "la-aixs-sec-weus",
+            "type": "String"
+        },
+        "ascalert_connection": {
+            "defaultValue": "/subscriptions/289e8341-6147-4fb6-897f-fa66a4919e8a/resourceGroups/rg-mlws-shared-stage-weus/providers/Microsoft.Web/connections/ascalert",
+            "type": "String"
+        },
+        "teams_connection": {
+            "defaultValue": "/subscriptions/289e8341-6147-4fb6-897f-fa66a4919e8a/resourceGroups/rg-mlws-shared-stage-weus/providers/Microsoft.Web/connections/teams",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('logic_app_name')]",
+            "location": "westus2",
+            "tags": {
+                "ContactEmailAddress": "chand.basha@zeiss.com,abhinay.patel@zeiss.com",
+                "owner": "layana.shrivastava@zeiss.com"
+            },
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "When_an_Microsoft_Defender_for_Cloud_Alert_is_created_or_triggered": {
+                            "type": "ApiConnectionWebhook",
+                            "inputs": {
+                                "body": {
+                                    "callback_url": "@{listCallbackUrl()}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['ascalert']['connectionId']"
+                                    }
+                                },
+                                "path": "/Microsoft.Security/Alert/subscribe"
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Post_message_in_a_chat_or_channel": {
+                            "runAfter": {},
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "messageBody": "<p>Alert name: @{triggerBody()?['AlertDisplayName']}<br>\nDescription: @{triggerBody()?['Description']}<br>\nDetection time: @{triggerBody()?['TimeGenerated']}<br>\nAttacked resource: @{triggerBody()?['CompromisedEntity']}<br>\nDetected by: @{triggerBody()?['VendorName']}<br>\nAlert ID: @{triggerBody()?['SystemAlertId']}<br>\n</p>",
+                                    "recipient": {
+                                        "channelId": "19:b84f3adcb1884caea37f856f37430bc4@thread.tacv2",
+                                        "groupId": "d01e3ece-9753-414e-8f91-3647aedb9922"
+                                    },
+                                    "subject": "Potential @{triggerBody()?['Severity']} severity threat detected:"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['teams']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/beta/teams/conversation/message/poster/@{encodeURIComponent('User')}/location/@{encodeURIComponent('Channel')}"
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "ascalert": {
+                                "connectionId": "[parameters('ascalert_connection')]",
+                                "connectionName": "ascalert",
+                                "id": "/subscriptions/289e8341-6147-4fb6-897f-fa66a4919e8a/providers/Microsoft.Web/locations/westus2/managedApis/ascalert"
+                            },
+                            "teams": {
+                                "connectionId": "[parameters('teams_connection')]",
+                                "connectionName": "teams",
+                                "id": "/subscriptions/289e8341-6147-4fb6-897f-fa66a4919e8a/providers/Microsoft.Web/locations/westus2/managedApis/teams"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

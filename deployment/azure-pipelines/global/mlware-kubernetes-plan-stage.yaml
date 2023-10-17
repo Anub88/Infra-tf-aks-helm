@@ -1,0 +1,18 @@
+# Plans for all states on the stage environment.
+
+name: $(Date:yyyyMMdd)$(Rev:.r)-kubernetes-plan-stage
+
+trigger: none
+
+stages:
+  - stage: check_terraform
+    displayName: Check Terraform
+    jobs:
+      - template: templates/jobs/checkov-template.yaml
+        parameters:
+          dir: "$(System.DefaultWorkingDirectory)"
+          failOnSecret: true
+  - template: "templates/stages/plan-kubernetes-template.yaml"
+    parameters:
+      envShortCode: "stage"
+      validate: true

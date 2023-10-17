@@ -1,0 +1,71 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "bsi-odx",
+        "description": "",
+        "version": "1.0"
+    },
+    "servers": [{
+        "url": ""
+    }],
+    "paths": {
+        "/bscanofinterest/{TenantId}/{examKey}": {
+            "get": {
+                "summary": "odxget",
+                "description": "odxget",
+                "operationId": "odxget",
+                "parameters": [{
+                    "name": "TenantId",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                        "type": ""
+                    }
+                }, {
+                    "name": "examKey",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                        "type": ""
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "null"
+                    }
+                }
+            }
+        },
+        "/bscanofinterest": {
+            "post": {
+                "summary": "odxpost",
+                "description": "odxpost",
+                "operationId": "odxpost",
+                "responses": {
+                    "200": {
+                        "description": "null"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "apiKeyHeader": {
+                "type": "apiKey",
+                "name": "Ocp-Apim-Subscription-Key",
+                "in": "header"
+            },
+            "apiKeyQuery": {
+                "type": "apiKey",
+                "name": "subscription-key",
+                "in": "query"
+            }
+        }
+    },
+    "security": [{
+        "apiKeyHeader": []
+    }, {
+        "apiKeyQuery": []
+    }]
+}

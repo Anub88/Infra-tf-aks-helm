@@ -1,0 +1,173 @@
+parameters:
+  - name: version
+    type: string
+    displayName: version of scan
+    default: 1 
+  
+  - name: ProductName
+    type: string
+    displayName: FOSS product name
+    default: AIXS 
+  
+  - name: ProductVersion
+    type: string
+    displayName: FOSS product version
+    default: 1 
+
+pool:
+  name: Azure Pipelines
+  vmImage: windows-latest
+
+  # Current blackduck tools supports windows agents only
+  #
+  # name: HDP Image Analyzer Application Agent
+  # demands:
+  #   - agent.name -equals IAA-BuildAgent
+
+
+resources:
+ repositories:
+ ### repo's has to be added as and when new repo's added to the project.
+  - repository: aixs-core-application
+    type: git
+    name: GEN_Health_Data_Platform/aixs-core-application
+    ref: main
+    
+  - repository: aixs-usecase-basiccare
+    type: git
+    name: GEN_Health_Data_Platform/aixs-usecase-basiccare
+    ref: main
+  
+  - repository: templates
+    type: git
+    endpoint: 'Serviceendpoint-axis-foss'
+    name: 'SIP_FOSS_Helpers/bd-java-tools-pipeline-integration'
+    ref: 'master'
+
+jobs:
+    - job: FOSSJob
+      displayName: FOSSJob
+    
+      steps:
+      - checkout: self
+      - checkout: aixs-core-application
+      - checkout: aixs-usecase-basiccare
+      - checkout: templates
+      
+      - task: PipAuthenticate@1
+        inputs:
+          artifactFeeds: 'GEN_Health_Data_Platform/aixs-python-feed'
+    
+      - task: PipAuthenticate@1
+        inputs:
+          artifactFeeds: 'GEN_Health_Data_Platform/mlware-python-feed'
+    
+    # Resolve library dependancies
+      - script: |
+          pip install fastapi~=0.86.0
+          pip install uvicorn~=0.20.0
+          pip install pydantic~=1.10.4
+          pip install requests~=2.28.2
+          pip install dapr~=1.8.2
+          pip install pyjwt
+          pip install azure-identity==1.10.0
+          pip install aixs-foundation~=0.2.0
+          pip install starlette~=0.20.4
+          pip install cloudevents~=1.9.0
+          pip install docker
+          pip install mlware==1.1.24
+          pip install mlware-keyvault-client>=1.0.8
+          pip install pytest
+          pip install adal
+          pip install behave
+          pip install pybreaker
+          pip install mlware-data-access
+          pip install mlware-data-access-client==1.1.1
+          pip install mlware-historical-data-retrieval
+          pip install mlware-model-lookup==1.0.3
+          pip install mlware-client-acr-docker==2.0.8
+          pip install azure-core
+          pip install azure-keyvault-secrets
+          pip install azure-data-tables
+          pip install azure-cosmos
+          pip install azure-keyvault
+          pip install azure-keyvault-certificates
+
+        displayName: 'Install dependencies'
+
+      - task: PipAuthenticate@1
+        inputs:
+          artifactFeeds: 'GEN_Health_Data_Platform/aixs-python-feed'  
+        
+      - script: |
+          pip install aixs-foundation~=0.2.0
+          pip install black~=23.1.0
+          pip install	coverage~=7.1.0
+          pip install	pytest~=7.2.1
+          pip install	pytest-cov~=4.0.0
+          pip install	requests-mock~=1.10.0
+          pip install	nox==2022.11.21
+          pip install	pylint~=2.16.1
+          pip install	setuptools~=67.3.1
+          pip install	wheel~=0.38.4
+        displayName:   'Install dependencies2'
+
+
+      - powershell: |
+          $RepositoryAlias = 'ScriptCollection'
+          $RepositoryUrl = 'https://$(Pat)@dev.azure.com/ZEISSgroup/SIP_FOSS_Helpers/_git/bd-java-tools-pipeline-integration'
+          $RepositoryBranch = 'master'
+          $env:GIT_REDIRECT_STDERR = '2>&1'
+          $CloneDir = "$(Agent.TempDirectory)/$RepositoryAlias"
+          $OutputVarName = "${RepositoryAlias}.Path"
+          Write-Host "Cloning $RepositoryUrl | Branch: $RepositoryBranch"
+          git clone "$RepositoryUrl" --progress --branch $RepositoryBranch --single-branch --depth=1 "$CloneDir"
+          Write-Host "##vso[task.setvariable variable=OutputVarName]$CloneDir"
+          write-Host "$(Agent.TempDirectory)"
+          Get-ChildItem env:
+          Get-Command java | Select-Object Version
+
+      - task: SynopsysDetectTask@8
+        inputs:
+          BlackDuckService: 'serviceconnection-blackduck-AIXS'
+          DetectArguments: |
+            --detect.project.name=MED_AI_Execution_Suite
+            --detect.project.version.name=${{parameters.version}}
+            --detect.detector.search.depth=10
+            --detect.blackduck.signature.scanner.license.search=true
+          DetectVersion: 'latest'
+  
+      - powershell: |
+          Write-Host "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_17_X64)"
+          Write-Host "##vso[task.setvariable variable=PATH]$(JAVA_HOME_17_X64)\bin;$(PATH)"
+          Get-Command java | Select-Object Version
+        displayName: "Set java version"
+
+      - template: AzurePipeline/bom-create.yml@templates
+        parameters:
+          ScriptPathRoot: "$(OutputVarName)"
+          AzurePat: $(Pat)
+          BlackDuckPat: $(BlackDuckPAT)
+          BlackDuckProjectName: "MED_AI_Execution_Suite" #"$(blackduck.projectName)" 
+          BlackDuckProjectVersion: "${{parameters.version}}" #"$(blackduck.version)"
+          CopyTo: "$(System.DefaultWorkingDirectory)/$(ProductName)_BOM_$(Build.BuildId).json"
+          JavaToolVersion: "latest"
+
+      - template: AzurePipeline/disclosureStatement-create.yml@templates
+        parameters:
+          ScriptPathRoot: "$(OutputVarName)"
+          AzurePat: $(Pat)
+          BlackDuckPat: $(BlackDuckPAT)
+          BlackDuckProjectName: "MED_AI_Execution_Suite" 
+          BlackDuckProjectVersion: "${{parameters.version}}"
+          ProductName: "${{parameters.ProductName}}"
+          ProductVersion: "${{parameters.ProductVersion}}"
+          CopyTo: "$(System.DefaultWorkingDirectory)/FOSS_Disclosure_Statement.txt"
+          JavaToolVersion: "latest"
+
+      - task: CmdLine@2
+        displayName: Display FOSS Statement
+        inputs:
+          script: |
+            cat $(System.DefaultWorkingDirectory)/FOSS_Disclosure_Statement.txt
+          workingDirectory: '$(System.DefaultWorkingDirectory)'

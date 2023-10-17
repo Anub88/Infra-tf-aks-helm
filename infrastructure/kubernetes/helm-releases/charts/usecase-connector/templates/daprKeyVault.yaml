@@ -1,0 +1,16 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: aixs-keyvault
+spec:
+  type: secretstores.azure.keyvault
+  version: v1
+  metadata:
+    - name: vaultName
+      value: {{ .Values.daprVariables.vaultName  }}
+    {{- range $key, $secret := $.Values.daprSecrets }}
+    - name: {{ $key }}
+      secretKeyRef:
+        name: dapr-secret
+        key: {{ $key | quote }}
+    {{- end }}

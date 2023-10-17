@@ -1,0 +1,40 @@
+pool:
+  name: HDP Image Analyzer Application Agent
+  demands:
+    - agent.name -equals IAA-BuildAgent
+
+trigger: none
+
+parameters:
+  - name: envShortCode
+    displayName: Environment
+    default: dev
+    values:
+      - "dev"
+      - "test"
+      - "qa"
+      - "shared"
+      - "stage"
+
+variables:
+  - name: regionShortCode
+    value: weus
+  - name: region
+    value: westus
+  - name: serviceConnection
+    value: sp-iaa-tf-serviceconnection
+
+stages:
+  - stage: InitializeBackend
+    jobs:
+      - job: initTfBackend
+        steps:
+          - task: AzureCLI@2
+            displayName: Azure CLI
+            inputs:
+              # TODO change the service connection name (whoever have rights to do so)
+              azureSubscription: "${{ variables.serviceConnection }}"
+              scriptType: bash
+              scriptLocation: scriptPath
+              scriptPath: "deployment/azure-pipelines/global/scripts/init-tf-backend.sh"
+              arguments: "-e ${{ parameters.envShortCode }} -r ${{ variables.region }} -s ${{ variables.regionShortCode }}"

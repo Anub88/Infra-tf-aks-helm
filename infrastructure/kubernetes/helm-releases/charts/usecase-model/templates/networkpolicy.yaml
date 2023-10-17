@@ -1,0 +1,81 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.usecaseName }}-data-proxy-egress-allowed
+spec:
+  podSelector:
+    matchLabels:
+      instance: {{ .Values.usecaseName }}-model
+      name: usecase-model
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: {{ .Values.usecaseName }}-data-proxy-ns
+        podSelector:
+          matchLabels:
+            name: nginx
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.usecaseName }}-connector-allowed
+spec:
+  podSelector:
+    matchLabels:
+      instance: {{ .Values.usecaseName }}-model
+      name: usecase-model
+  policyTypes:
+    - Egress
+    - Ingress
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: {{ .Values.usecaseName }}-connector-ns
+        podSelector:
+          matchLabels:
+            name: usecase-connector
+            instance: {{ .Values.usecaseName }}-connector
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name:  {{ .Values.usecaseName }}-connector-ns
+        podSelector:
+          matchLabels:
+            name: usecase-connector
+            instance: {{ .Values.usecaseName }}-connector
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.usecaseName }}-configuration-allowed
+spec:
+  podSelector:
+    matchLabels:
+      instance:  {{ .Values.usecaseName }}-model
+      name: usecase-model
+  policyTypes:
+    - Egress
+    - Ingress
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: {{ .Values.usecaseName }}-connector-ns
+        podSelector:
+          matchLabels:
+            instance: {{ .Values.usecaseName }}-configuration
+            name: usecase-configuration
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: {{ .Values.usecaseName }}-connector-ns
+        podSelector:
+          matchLabels:
+            instance: {{ .Values.usecaseName }}-configuration
+            name: usecase-configuration

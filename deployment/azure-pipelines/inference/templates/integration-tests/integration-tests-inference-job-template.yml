@@ -1,0 +1,104 @@
+parameters:
+  - name: bahaveTags # add behave tags as documented https://behave.readthedocs.io/en/stable/behave.html#tag-expression
+    type: string
+    displayName: "Behave tags for selective test execution"
+    default: "runall"
+  - name: environment # add environment value as 'dev', 'qa', 'prod'
+    type: string
+    displayName: "Environment against which integration tests are executed"
+    default: "dev"
+  - name: workDirRoot
+    default: "application/inference/integration_tests"
+  - name: workDirIntTestsFeatures
+    default: "application/inference/integration_tests/applications/"
+  - name: buildAgent
+    default: "IAA-BuildAgent"
+
+jobs:
+  - job: ExecuteIntegrationTests
+    pool:
+      name: HDP Image Analyzer Application Agent
+      demands:
+      - agent.name -equals ${{ parameters.buildAgent }}
+    steps:
+      - task: UsePythonVersion@0
+        displayName: "Use Python 3.9"
+        inputs:
+          versionSpec: 3.9
+          addToPath: true 
+      #
+      # Authenticate to Azure Artifacts
+      #
+      - task: PipAuthenticate@1
+        displayName: "Authenticate with mlware Python feed"
+        inputs:
+          artifactFeeds: 'GEN_Health_Data_Platform/mlware-python-feed'
+
+      #
+      # Install docker and show docker version
+      #
+      - task: DockerInstaller@0
+        displayName: "Docker Installation"
+        inputs:
+          dockerVersion: 20.10.8
+          releaseType: stable
+      - script: |
+          docker --version
+        displayName: "Docker Version"
+      #
+      # Install dependencies
+      #
+      - script: |
+            python3 -m pip install -U --upgrade-strategy eager -r ./requirements.txt --user
+        workingDirectory: $(System.DefaultWorkingDirectory)/${{ parameters.workDirRoot }}
+        displayName: "Install application dependencies"
+      #
+      # Execute behave (Behavior-Driven-Development/Testing)
+      #
+      - script: |
+            python3 -m behave --version
+        displayName: "Display behave version"
+        workingDirectory: $(System.DefaultWorkingDirectory)/${{ parameters.workDirRoot }}
+      - ${{ if eq( parameters['bahaveTags'], 'runall') }}:
+        - ${{ if eq( parameters['environment'], 'stage')}}:
+          - script: |
+              echo 'Environment selected: ' $ENV_STATE
+              python3 -m behave --junit --verbose --no-logcapture --summary --tags ~@only_dev
+            displayName: "Execute all behave integration tests"
+            workingDirectory: $(System.DefaultWorkingDirectory)/${{ parameters.workDirIntTestsFeatures }}
+            env: 
+              ENV_STATE: ${{ parameters.environment }}
+        - ${{ else }}:
+          - script: |
+              echo 'Environment selected: ' $ENV_STATE
+              python3 -m behave --junit --verbose --no-logcapture --summary
+            displayName: "Execute all behave integration tests"
+            workingDirectory: $(System.DefaultWorkingDirectory)/${{ parameters.workDirIntTestsFeatures }}
+            env: 
+              ENV_STATE: ${{ parameters.environment }}
+          
+      - ${{ else }}:
+        - script: |
+            echo 'Environment selected: ' $ENV_STATE
+            python3 -m behave --tags ${{ parameters.bahaveTags }} --junit --verbose --no-logcapture --summary
+          displayName: "Execute selected behave integration tests for tags ${{ parameters.bahaveTags }}"
+          workingDirectory: $(System.DefaultWorkingDirectory)/${{ parameters.workDirIntTestsFeatures }}
+          env:
+            ENV_STATE: ${{ parameters.environment }}
+      #
+      # Publish test results
+      #
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFiles: '**/TESTS-*.xml'
+          testRunTitle: 'AIXS Integration Test Cases'
+  - job: ExecuteBlackDuckScan
+    pool:
+      # Blackduck is only executable on this VM at the moment
+      vmImage: 'ubuntu-latest'
+    steps:
+      - template: ../code-quality/code-quality-blackduck-template.yml
+        parameters:
+          workDir: $(System.DefaultWorkingDirectory)/${{ parameters.workDirRoot }}
+    dependsOn: ExecuteIntegrationTests

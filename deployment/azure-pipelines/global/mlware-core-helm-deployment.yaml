@@ -1,0 +1,172 @@
+trigger: none
+
+parameters:
+     - name: envShortCode
+       type: string
+       displayName: "Environment."
+       default: "dev"
+       values:
+            - "dev"
+            - "qa"
+            - "stage"
+            - "pen"
+
+     - name: aimanagerbuildnumber
+       type: string
+       displayName: "AI- Manager service Build Number."
+       default: "buildnumber"
+      
+     - name: aimanagerhelmcmd
+       type: string
+       displayName: "AI- Manager Helm Command (install/uninstall/upgrade) "
+       default: " "
+
+     - name: observerservicebuildnumber
+       type: string
+       displayName: "Observer service Build Number."
+       default: "buildnumber"
+    
+     - name: observerhelmcmd
+       type: string
+       displayName: "Observer Helm Command (install/uninstall/upgrade) "
+       default: " "
+
+     - name: plannerservicebuildnumber
+       type: string
+       displayName: "planner service Build Number."
+       default: "buildnumber"
+       
+     - name: plannerhelmcmd
+       type: string
+       displayName: "planner Helm Command (install/uninstall/upgrade) "
+       default: " "
+
+     - name: managerservicebuildnumber
+       type: string
+       displayName: "manager service Build Number."
+       default: "buildnumber"
+       
+     - name: managerhelmcmd
+       type: string
+       displayName: "manager Helm Command (install/uninstall/upgrade) "
+       default: " "
+
+variables:
+  - name: buildagent
+    ${{ if or(eq(parameters.envShortCode, 'dev'), eq(parameters.envShortCode, 'qa')) }}:
+      value: "IAA-Buildagent"
+    ${{ else }}:
+      value: "IAA-Buildagent-stage"
+       
+  - name: serviceConnection
+    ${{ if eq(parameters.envShortCode, 'dev') }}:
+      value: "sp-aks-dev-aixs-serviceconnection"
+    ${{ elseif eq(parameters.envShortCode, 'qa') }}:
+      value: "sp-aks-qa-aixs-serviceconnection"
+    ${{ elseif eq(parameters.envShortCode, 'stage') }}:
+      value: "sp-aks-stage-aixs-serviceconnection"
+    ${{ else }}:
+      value: "sp-aks-pen-aixs-serviceconnection"
+
+  - name: environment
+    ${{ if eq(parameters.envShortCode, 'dev') }}:
+      value: "iaa - Development"
+    ${{ elseif eq(parameters.envShortCode, 'qa') }}:
+      value: "iaa - QA"
+    ${{ elseif eq(parameters.envShortCode, 'stage') }}:
+      value: "iaa - Stage"
+    ${{ else }}:
+      value: "iaa - pen"
+
+
+  - name: serviceprincipal
+    ${{ if or(eq(parameters.envShortCode, 'dev'), eq(parameters.envShortCode, 'qa')) }}:
+      value: "sp-iaa-tf-serviceconnection"
+    ${{ elseif or(eq(parameters.envShortCode, 'stage'), eq(parameters.envShortCode, 'pen')) }}:
+      value: "sp-iaa-stage-tf-serviceconnection"
+    ${{ else }}:
+      value: "sp-iaa-${{ parameters.envShortCode }}-tf-serviceconnection"
+    
+# pool:
+#       name: HDP Image Analyzer Application Agent
+#       demands:
+#         - agent.name -equals ${{ variables.buildagent }}
+
+stages:
+        
+    - stage:
+      displayName: AI Manager Service     
+      condition:  |
+       or(contains('${{ parameters.aimanagerhelmcmd }}', 'uninstall'),
+       and(contains('${{ parameters.aimanagerhelmcmd }}', 'install'), ne('${{ parameters.aimanagerbuildnumber }}', 'buildnumber')),
+       and(not(eq('${{ parameters.aimanagerbuildnumber }}', 'buildnumber')), contains('${{ parameters.aimanagerhelmcmd }}', 'upgrade')))
+      dependsOn: [] 
+      jobs:
+      - template: "templates/deployment-helm-template.yaml"
+        parameters:
+          buildagent: ${{ variables.buildagent }}
+          serviceConnection: ${{ variables.serviceConnection }}
+          environment:  ${{ variables.environment }}
+          envshortcode: ${{ parameters.envShortCode }}
+          namespace: "core-services-ns"
+          helmchart: "ai-manager"
+          helmrelasename: "ai-manager"
+          helmvalues: ${{ parameters.envShortCode }}-values.yaml
+          Command: ${{ parameters.aimanagerhelmcmd }}
+          flags: "--set 'image.tag=${{ parameters.aimanagerbuildnumber }}' --set 'secret.cosmospassword=$(cosmos-mongodb-rw-password)'"
+
+          
+    - stage:
+      displayName: Observer Service
+      condition: or(contains('${{ parameters.observerhelmcmd }}', 'uninstall'),and(not(contains('${{ parameters.observerservicebuildnumber }}', 'buildnumber')),contains('${{ parameters.observerhelmcmd }}', 'install')),and(not(contains('${{ parameters.observerservicebuildnumber }}', 'buildnumber')),contains('${{ parameters.observerhelmcmd }}', 'upgrade')))
+      dependsOn: [] 
+      jobs:
+      - template: "templates/deployment-helm-template.yaml"
+        parameters:
+          buildagent: ${{ variables.buildagent }}
+          serviceConnection: ${{ variables.serviceConnection }}
+          environment:  ${{ variables.environment }}
+          envshortcode: ${{ parameters.envShortCode }}
+          namespace: "core-services-ns"
+          helmchart: "core-hdp-observer"
+          helmrelasename: "core-hdp-observer"
+          helmvalues: values.yaml
+          Command: ${{ parameters.observerhelmcmd }}
+          flags: "--set 'tag=${{ parameters.observerservicebuildnumber }}' --set 'replicaCount=1' --set 'registry=acrmlws${{ parameters.envShortCode }}weus.azurecr.io' --set 'agentpool=default' --set 'env.ENV_STATE=${{ parameters.envShortCode }}' --set 'envSecrets.CONFIG_TENANT_ID=$(azure-tenant-id)' --set 'envSecrets.CONFIG_CLIENT_APP_ID=$(hdp-client-hdp-client-app-id)' --set 'envSecrets.CONFIG_SECRET_ID=$(hdp-client-hdp-secret)' --set 'envSecrets.CONFIG_API_APP_ID=$(hdp-client-hdp-api-app-id)' --set 'envSecrets.CONFIG_SUBSCRIPTION_KEY=$(hdp-client-hdp-subscription-key)' --set 'envSecrets.CONFIG_TARGET_TENANT_ID=$(hdp-client-hdp-target-tenant-id)' --set 'env.CONFIG_HDP_BASE_ADDRESS=$(HDP-CLIENT-BASE-URL)' --set 'daprSecrets.azureClientSecret=$(app-reg-dapr-client-secret-mlif-weus-${{ parameters.envShortCode }})' --set 'daprSecrets.azureClientId=$(app-reg-dapr-client-id-mlif-weus-${{ parameters.envShortCode }})' --set 'daprSecrets.azureTenantId=$(azure-tenant-id)' --set 'daprVariables.vaultName=kv-mlws-${{ parameters.envshortcode }}-weus' --set 'daprVariables.subscriptionID=$(resource-subscription-id)' --set 'daprVariables.resourceGroupName=rg-mlw-${{ parameters.envshortcode }}-weus' --set 'daprVariables.eventHubNamespace=eventhub-namespace-mlif-${{ parameters.envShortCode }}-weus' --set 'daprVariables.storageAccountName=eventhubstmlif${{ parameters.envShortCode }}weus' --set 'daprVariables.storageContainerName=eventhub-namespace-mlif-${{ parameters.envShortCode }}-weus-container'"
+ 
+    - stage:
+      displayName: Planner Service
+      condition: or(contains('${{ parameters.plannerhelmcmd }}', 'uninstall'),and(not(contains('${{ parameters.plannerservicebuildnumber }}', 'buildnumber')),contains('${{ parameters.plannerhelmcmd }}', 'install')),and(not(contains('${{ parameters.plannerservicebuildnumber }}', 'buildnumber')),contains('${{ parameters.plannerhelmcmd }}', 'upgrade')))
+      dependsOn: [] 
+      jobs:
+      - template: "templates/deployment-helm-template.yaml"
+        parameters:
+          buildagent: ${{ variables.buildagent }}
+          serviceConnection: ${{ variables.serviceConnection }}
+          environment:  ${{ variables.environment }}
+          envshortcode: ${{ parameters.envShortCode }}
+          namespace: "core-services-ns"
+          helmchart: "core-planner"
+          helmrelasename: "core-planner"
+          helmvalues: "values.yaml"
+          Command: ${{ parameters.plannerhelmcmd }}
+          flags: "--set 'tag=${{ parameters.plannerservicebuildnumber }}' --set 'replicaCount=1' --set 'registry=acrmlws${{ parameters.envShortCode }}weus.azurecr.io' --set 'agentpool=default' --set 'local.aixsSecretStoreName=$(aixs-keyvault)' --set 'env.ENV_STATE=${{ parameters.envShortCode }}' --set 'env.CONFIG_HDP_BASE_URL=$(HDP-CLIENT-BASE-URL)' --set 'env.CONFIG_HDP_DEVICE_AUTH_TOKEN_URL=$(HDP-DEVICE-AUTH-TOKEN-URL)' --set 'env.CONFIG_HDP_AUTH_TOKEN_URL=$(zeiss-token-url)' --set 'envSecrets.CONFIG_HDP_TENANT_ID=$(hdp-tenant-id)' --set 'envSecrets.CONFIG_AZURE_TENANT_ID=$(azure-tenant-id)' --set 'envSecrets.CONFIG_HDP_SUBSCRIPTION_KEY_DEV_PLANNER=$(hdp-subscription-key-dev-planner)' --set 'envSecrets.CONFIG_AZURE_CLIENT_APP_ID=$(azure-client-app-id-dev-weus)' --set 'envSecrets.CONFIG_AZURE_SECRET=$(appreg-aixs-s2s-hdp-client-secret-dev-weus)' --set 'envSecrets.CONFIG_HDP_API_APP_ID=$(hdp-api-app-id)' --set 'envSecrets.CONFIG_HDP_SUBSCRIPTION_KEY=$(hdp-client-hdp-subscription-key)' --set 'envSecrets.CONFIG_HDP_AUTH_USERNAME=$(hdp-client-hdp-auth-username)' --set 'envSecrets.CONFIG_HDP_AUTH_PWD=$(hdp-client-hdp-auth-pwd)' --set 'envSecrets.CONFIG_HDP_AUTH_CLIENT=$(hdp-client-hdp-auth-client)'"
+
+    - stage:
+      displayName: Core Manager Service
+      condition: or(contains('${{ parameters.managerhelmcmd }}', 'uninstall'),and(not(contains('${{ parameters.managerservicebuildnumber }}', 'buildnumber')),contains('${{ parameters.managerhelmcmd }}', 'install')),and(not(contains('${{ parameters.managerservicebuildnumber }}', 'buildnumber')),contains('${{ parameters.managerhelmcmd }}', 'upgrade')))
+      dependsOn: [] 
+      jobs:
+      - template: "templates/deployment-helm-template.yaml"
+        parameters:
+          buildagent: ${{ variables.buildagent }}
+          serviceConnection: ${{ variables.serviceConnection }}
+          environment:  ${{ variables.environment }}
+          envshortcode: ${{ parameters.envShortCode }}
+          namespace: "core-services-ns"
+          helmchart: "core-manager"
+          helmrelasename: "core-manager"
+          helmvalues: ${{ parameters.envShortCode }}-values.yaml
+          Command: ${{ parameters.managerhelmcmd }}
+          flags: "--set 'tag=${{ parameters.managerservicebuildnumber }}' --set 'replicaCount=1' --set 'registry=acrmlws${{ parameters.envShortCode }}weus.azurecr.io' --set 'agentpool=default'"
+      

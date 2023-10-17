@@ -1,0 +1,40 @@
+# Stage template runs plan for kubernetes state and is parameterized by environment.
+parameters:
+  - name: envShortCode
+    type: string
+    displayName: "Environment of the job (short code format: dev/qa/stage/prod)"
+    default: "dev"
+    values:
+      - dev
+      - qa
+      - stage
+      - prod
+      - pen
+  - name: tagApply
+    type: boolean
+    displayName: "Publish tracing apply tag or not."
+    default: true
+
+stages:
+  - stage: deploy_${{ parameters.envShortCode }}_customconfig
+    dependsOn: terraform_plan_${{ parameters.envShortCode }}_customconfig
+    displayName: "Deploy - ${{ parameters.envShortCode }} - customconfig"
+    variables:
+      - template: "../../vars/${{ parameters.envShortCode }}-vars.yaml"
+    jobs:
+      - template: "../jobs/infra-release-template.yaml"
+        parameters:
+          envShortCode: ${{ parameters.envShortCode }}
+          subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+          stateFile: "${{ variables.stateFilecustomconfig}}"
+          workDir: "$(System.DefaultWorkingDirectory)"
+          buildId: "$(Build.BuildId)"
+          pathToTFCode: "infrastructure/customconfig"
+          buildAgentName: "${{ variables.selfBuildAgentName }}"
+          azureDevOpsEnvironment: "${{ variables.azureDevOpsEnvironment }}"
+          stateDisplayName: customconfig
+      - ${{ if parameters.tagApply }}:        
+          - template: "../jobs/tag-template.yaml"
+            parameters:
+              tagString: "tracing/${{ parameters.envShortCode }}/customconfig/$(currentTimeStamp)_$(Build.SourceBranchName)"
+              dependson: "deploy_azure_resources"

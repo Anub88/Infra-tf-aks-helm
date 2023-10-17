@@ -1,0 +1,27 @@
+# Coverity on Polaris is a code scan tool in the cloud through an enterprise-scale service
+# This pipeline will cover below mentioned repos to scan and produce analysis on below sysnopsys GUI
+# https://carlzeiss.polaris.synopsys.com/signin
+
+pool:
+    name: HDP Image Analyzer Application Agent
+    demands:
+    - agent.name -equals IAA-BuildAgent
+
+jobs:
+- job: checkout
+  displayName: Checkout repo
+ 
+  steps:
+  - checkout: self
+  - task: SynopsysPolaris@1
+    displayName: Synopsys-Setup
+    inputs:
+            polarisService: 'Polaris-iaa-server-serviceconnection'
+            polarisCommand: 'setup -p DQB_AI-ImageAnalyzer'
+
+  - task: SynopsysPolaris@1
+    displayName: Synopsys-Analysis
+    inputs:
+             polarisService: 'Polaris-iaa-server-serviceconnection'
+             polarisCommand: '--co analyze.coverity.cov-analyze=["--webapp-security","--android-security","--aggressiveness-level","high","--webapp-security-aggressiveness-level","high"] analyze'
+          

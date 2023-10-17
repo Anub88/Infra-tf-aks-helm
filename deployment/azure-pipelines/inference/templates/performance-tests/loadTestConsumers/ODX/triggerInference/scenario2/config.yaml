@@ -1,0 +1,9 @@
+testName: postapi_scenario_2
+testPlan: testPlan.jmx
+description: test the post request - 15 threads and 5s ramp up
+engineInstances: 1
+splitAllCSVs: False
+failureCriteria:
+- avg(response_time_ms) >  10000
+- avg(requests_per_sec) >  10000
+- avg(latency) >  10000

@@ -1,0 +1,27 @@
+variables:
+  - name: envShortCode
+    value: dev
+  - name: subscriptionShortCode
+    value: dev
+  # State file names.
+  - name: stateFileKubernetes
+    value: "st-tf-kubernetes-dev-weus.tfstate"
+  - name: stateFileMlware
+    value: "st-tf-dev-weus.tfstate"
+  - name: stateFileShared
+    value: "st-tf-shared-weus.tfstate"
+  - name: stateFileApim
+    value: "st-tf-apim-dev-weus.tfstate"
+  - name: stateFileappregistrations
+    value: "st-tf-appregistrations-dev-weus.tfstate"
+  - name: stateFilecustomconfig
+    value: "st-tf-customconfig-dev-weus.tfstate"
+  - name: stateFileBuildAgent
+    value: "rg-blagnt-common.tfstate"
+  - name: azureDevOpsEnvironment
+    value: "iaa - Development"
+  # Build agent pool names.
+  - name: managedBuildAgentName
+    value: ubuntu
+  - name: selfBuildAgentName
+    value: IAA-BuildAgent

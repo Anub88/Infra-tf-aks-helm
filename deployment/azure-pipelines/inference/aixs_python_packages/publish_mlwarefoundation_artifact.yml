@@ -1,0 +1,12 @@
+trigger:
+  branches:
+    include:
+      - 'develop'
+  paths:
+    include:
+      - 'application/inference/mlwarefoundation/*'
+
+jobs:
+    - template: ../templates/artifacts/python-twine-publish-python-repo-template.yml
+      parameters:
+        artifactname: 'mlwarefoundation'

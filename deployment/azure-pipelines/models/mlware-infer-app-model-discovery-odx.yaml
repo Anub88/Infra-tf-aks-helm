@@ -1,0 +1,74 @@
+name: $(majorMinorVersion).$(semanticVersion).$(rev:r)
+
+trigger: none
+
+resources:
+ repositories:
+  - repository: iaa-shared-odx
+    type: git
+    name: GEN_Health_Data_Platform/iaa-shared-odx
+    ref: development
+
+variables:
+  majorMinorVersion: 0.0
+  semanticVersion: 0
+  BuildConfiguration: 'Release'
+
+stages:
+- stage: Build_Docker_Image
+  displayName: Build Docker Image
+  jobs:
+  - template: templates/mlware-infer-app-model-discovery-build-docker-template.yaml
+    parameters:
+      repository: iaa-shared-odx
+- stage: Development_Deployment
+  displayName: Development Deployment
+  dependsOn: Build_Docker_Image
+  jobs:
+    - template: templates/mlware-infer-app-model-discovery-deploy-docker-template.yaml
+      parameters:
+        envShortCode: "dev"
+        azureDevOpsEnvironment: "iaa - Development"
+        serviceConnection: "$(serviceConnection)"
+        namespace: "thinclientgroup"
+        kubernetesDeploymentFile: "odx-model-deployment.yml"
+
+- stage: Stage_Deployment
+  displayName: Stage Deployment
+  dependsOn: Development_Deployment
+  jobs:
+    - deployment: stage_deployment
+      displayName: Stage-Deployment (Dummy - Not Yet Implemented)
+      pool:
+        name: HDP Image Analyzer Application Agent
+      environment: iaa - Stage  
+      strategy:
+          runOnce:
+            deploy:
+              steps:
+              - task: CmdLine@2
+                inputs:
+                  script: |
+                    ls -l
+                    echo "Stage Envinronment"
+
+- stage: Production_Deployment
+  displayName: Production Deployment
+  dependsOn: Stage_Deployment
+  jobs:
+    - deployment: production_deployment
+      displayName: Production-Deployment (Dummy - Not Yet Implemented)
+      pool:
+        name: HDP Image Analyzer Application Agent
+      environment: iaa - Production  
+      strategy:
+          runOnce:
+            deploy:
+              steps:
+              - task: CmdLine@2
+                inputs:
+                  script: |
+                    ls -l
+                    echo "Production Envinronment"
+
+

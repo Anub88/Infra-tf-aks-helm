@@ -1,0 +1,9 @@
+docker
+
+# MLware
+mlware==1.1.22
+mlware-keyvault-client>=1.0.9
+
+
+# Testing
+pytest

@@ -1,0 +1,14 @@
+# Set timestamp to job level variable.
+steps:
+  - bash: |
+      export d=$(date +%Y%m%d%H%M%S)
+      echo "Current timestamp is: $d"
+      echo "##vso[task.setvariable variable=currentTimeStamp]$d"
+    condition: eq( variables['Agent.OS'], 'Linux' )
+    displayName: "Get current timestamp"
+  - powershell: |
+      Write-Host "Setting up the date time for tagging operations."
+      $date=$(Get-Date -format yyyyMMddHmmss)
+      Write-Host "##vso[task.setvariable variable=currentTimeStamp]$date"
+    condition: eq( variables['Agent.OS'], 'Windows_NT' )
+    displayName: "Get current timestamp"

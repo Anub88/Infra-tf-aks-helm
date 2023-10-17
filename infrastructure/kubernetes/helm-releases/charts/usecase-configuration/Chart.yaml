@@ -1,0 +1,5 @@
+apiVersion: v2
+name: usecase-configuration
+description: Helm Chart for AIXS usecase-configuration service.
+type: application
+version: 0.1.0

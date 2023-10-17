@@ -1,0 +1,61 @@
+# to extend this pipeline with further scenarios or consumers:
+# extend the values of nameOfConsumers with further consumers (exchange the placeholder: others-not-existing-yet) 
+# and add a new object paramter with names of scenarios (similar to scenarioAndConfigFileODX)
+# and add a new variable with the paths to the config files (similar to pathODXscenarios)
+# and extend the jobs
+
+parameters:
+  - name: environment
+    displayName: environment
+    type: string
+    default: qa
+    values:
+    - dev
+    - qa
+    - stage
+
+  - name: nameOfConsumers
+    displayName: "Choose the name of the consuming service to run all available performance tests."
+    type: string
+    default: ODX
+    values:
+    - ODX
+    - others-not-existing-yet 
+    
+
+  - name: scenarioAndConfigFileODX
+    displayName: "Following scenarios will be run if you select ODX as consuming service:"
+    type: object
+    default:
+    - retrieveInference/scenario1
+    - retrieveInference/scenario2
+    - triggerInference/scenario1
+    - triggerInference/scenario2
+
+
+variables:
+  - name: pathODXscenarios
+    value: "loadTestConsumers/ODX"
+    
+  
+  
+
+  
+trigger:
+  branches:
+    include:
+      - 'develop'
+  paths:
+    include:
+      - 'application/inference/performance_tests/*'
+
+jobs:
+  - ${{ if eq(parameters.nameOfConsumers, 'ODX')}}:
+    - ${{ each scenarioAndConf in parameters.scenarioAndConfigFileODX }}:
+      - template: ../templates/performance-tests/performance-tests-inference-job-template.yml
+        parameters:      
+          environment: ${{ parameters.environment }}
+          nameToDisplay: 'Run a Load Test for ${{ parameters.nameOfConsumers }} for Test Case:  ${{ scenarioAndConf }}'
+          nameConfigFileForTestScenario: ${{ variables.pathODXscenarios }}/${{ scenarioAndConf }}/config.yaml
+          ${{ if eq(parameters.environment, 'stage')}}:
+            buildAgent: IAA-BuildAgent-Stage

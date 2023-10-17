@@ -1,0 +1,77 @@
+# Default values for usecase-model.
+fullnameOverride: 
+usecaseName: 
+
+## Usecase
+# Deployment
+replicaCount: 
+registry: 
+usecaseRepository: aixs-usecase-maringa
+usecaseTag: 
+sizeLimit: 1Gi
+
+podAnnotations: {
+  helm.sh/hook-delete-policy: "before-hook-creation,hook-succeeded",
+  helm.sh/hook: "post-install,post-upgrade"
+  }
+
+securityContext: {}
+
+# NodeSelector
+agentpool: 
+tolerations: []
+affinity: {}
+
+# Service
+usecaseServicePort: 
+usecaseServiceType: "ClusterIP"
+usecaseServiceAnnotations: {}
+
+# Usecase-Environment (Injected by TF)
+usecaseEnviromentVariables:
+  ENV_STATE: 
+  DUMMYMODEL: 
+  ZEISS_TOKEN_URL:
+  ZEISS_HDP_URL:
+  ZEISS_APP_ID:
+
+usecaseEnviromentSecrets:
+  ZEISS_USERNAME:
+  ZEISS_PASSWORD:
+
+
+# Usecase-Resources
+usecaseResources: {}
+
+
+## Supervisor-Sidecar
+supervisor:
+  enabled: true
+  servicePort: 8000
+  tag: 
+
+# Supervisor-Environment
+  enviromentVariables:
+    ENV_STATE: 
+    CONFIG_ENVIRONMENT:
+    CONFIG_AI_APPLICATION_RUN_ENDPOINT: 
+    CONFIG_AI_APPLICATION_TIMEOUT:
+    CONFIG_STORAGE_ROOT_PATH:
+
+# Supervisor-Resources
+  supervisorResources:
+    limits:
+      memory: 600Mi
+      cpu: 1
+    requests:
+      memory: 300Mi
+      cpu: 500m
+
+## DAPR Pub Sub - Service Bus 
+dapr:
+  enabled: false
+#  metadata:
+#    connectionString: odx-servicebus-connectionstring
+#    lockDurationInSec: 300
+#    maxConcurrentHandlers: 1
+#    maxActiveMessages: 1

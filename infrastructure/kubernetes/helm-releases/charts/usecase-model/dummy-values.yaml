@@ -1,0 +1,88 @@
+# Default values for usecase-model.
+fullnameOverride: 
+usecaseName: 
+
+## Usecase
+# Deployment
+replicaCount: 
+registry: 
+usecaseRepository: dummy-ai-application
+usecaseTag: 
+sizeLimit: 1Gi
+
+podAnnotations: {
+  }
+
+securityContext: {}
+
+# NodeSelector
+agentpool: 
+tolerations: []
+affinity: {}
+
+# Service
+usecaseServicePort: 
+usecaseServiceType: "LoadBalancer"
+usecaseServiceAnnotations: {
+ service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+}
+
+# Usecase-Environment (Injected by TF)
+usecaseEnviromentVariables:
+  CONFIG_azure_tenant_id:
+  CONFIG_azure_client_app_id:
+  CONFIG_azure_secret:
+  CONFIG_hdp_api_app_id:
+  CONFIG_hdp_tenant_id:
+  CONFIG_hdp_subscription_key:
+  CONFIG_hdp_base_url:
+  CONFIG_status_service_url:
+  CONFIG_setting_service_url:
+  CONFIG_storage_root_path:
+  ENV_STATE: stage
+  DUMMYMODEL: 
+  ZEISS_TOKEN_URL:
+  ZEISS_HDP_URL:
+  ZEISS_APP_ID:
+  CONFIG_log_level: "INFO"
+
+usecaseEnviromentSecrets:
+  ZEISS_USERNAME:
+  ZEISS_PASSWORD:
+
+
+# Usecase-Resources
+usecaseResources: {}
+
+
+## Supervisor-Sidecar
+supervisor:
+  enabled: true
+  servicePort: 8000
+  tag: 
+
+# Supervisor-Environment
+  enviromentVariables:
+    ENV_STATE: 
+    CONFIG_ENVIRONMENT:
+    CONFIG_AI_APPLICATION_RUN_ENDPOINT: 
+    CONFIG_AI_APPLICATION_TIMEOUT:
+    CONFIG_STORAGE_ROOT_PATH:
+
+# Supervisor-Resources
+  supervisorResources:
+    limits:
+      memory: 600Mi
+      cpu: 1
+    requests:
+      memory: 300Mi
+      cpu: 500m
+
+## DAPR Pub Sub - Service Bus 
+dapr:
+  enabled: false
+#  metadata:
+#    connectionString: odx-servicebus-connectionstring
+#    lockDurationInSec: 300
+#    maxConcurrentHandlers: 1
+#    maxActiveMessages: 1

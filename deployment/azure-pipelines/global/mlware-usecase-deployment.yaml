@@ -1,0 +1,99 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+# trigger:
+# - main
+
+pool:
+      name: HDP Image Analyzer Application Agent
+      demands:
+        - agent.name -equals  IAA-BuildAgent
+steps:
+- script: | 
+    echo Hello, world! "\n"
+    curl -L http://10.6.1.90:8008/api/v1/health
+  displayName: step1
+
+- script: | 
+    echo Hello, world2!
+    curl -L http://10.6.1.90:8008/api/v1/manifest
+  displayName: step2
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Write your commands here
+      
+      echo 'Hello world'
+      curl -L http://10.6.1.90:8008/api/v1/manifest'
+    failOnStderr: true
+    
+#    curl --location 'http://10.6.1.90:8008/api/v1/health'
+#    echo \nhealth
+
+#    curl --location 'http://10.6.1.90:8008/api/v1/manifest' \
+#     --header 'Content-Type: application/json' \
+#     --data-raw '{
+#         "applicationId": "c4a005e0-57d0-4505-9d25-822759ae43be",
+#         "applicationVersion": "1.1",
+#         "documentType": "AIApplicationManifest",
+#         "documentVersion": 4,
+#         "name": "new-schema2",
+#         "imageTag": "1.2.0",
+#         "environment": {
+#         "url": "http://local:8765/api/v1/endpoint"
+#         },
+#         "computeRequirements": {
+#         "nodeType": "D2s_v3",
+#         "operatingSystem": "Linux",
+#         "numCpuCores": 8,
+#         "numGpuCores": 8,
+#         "sizeCpuMemory": 16,
+#         "sizeGpuMemory": 16,
+#         "maxRuntimeTimeout": 20,
+#         "tempStorageSize": 2340
+#         },
+#         "applicationConfiguration": {
+#         "triggerCondition": {
+#             "plan": [
+#             {
+#                 "id": "plan-1",
+#                 "description": "plan description",
+#                 "rule": [
+#                 {
+#                     "id": "rule-1",
+#                     "query": "{id: .id, ref: .subject.reference}",
+#                     "queryType": "JQ Query"
+#                 }
+#                 ]
+#             }
+#             ],
+#             "aiPlanRemoveDuplicate": false,
+#             "triggerType": "Hdp Data Event Trigger",
+#             "scope": "Imaging Study"
+#         },
+#         "triggerApiConfiguration": {
+#             "url": "http://local:8800/api/v1",
+#             "headers": {
+#             "key": "value",
+#             "key2": "value2"
+#             },
+#             "method": "post",
+#             "maxTimeOut": "698"
+#         },
+#         "externalConfiguration": [
+#             {
+#             "key": "blob",
+#             "value": "url"
+#             }
+#         ]
+#         },
+#         "description": "string",
+#         "schemaVersion": 1
+#     }'
+#     echo \npost
+#    curl --location 'http://10.6.1.90:8008/api/v1/manifest'
+#   displayName: 'Run a multi-line script'

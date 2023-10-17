@@ -1,0 +1,30 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: aixs-pub-sub
+spec:
+  type: pubsub.azure.eventhubs
+  version: v1
+  metadata:
+    - name: subscriptionID
+      value: {{ .Values.daprVariables.subscriptionID  }}
+    - name: resourceGroupName
+      value: {{ .Values.daprVariables.resourceGroupName }}
+    - name: eventHubNamespace
+      value: {{ .Values.daprVariables.eventHubNamespace  }}
+    - name: storageAccountName
+      value: {{ .Values.daprVariables.storageAccountName  }}
+    - name: storageContainerName
+      value: {{ .Values.daprVariables.storageContainerName  }}
+    - name: enableEntityManagement
+      value: "true"
+    - name: partitionCount
+      value: "2"
+    - name: messageRetentionInDays
+      value: "1"
+    {{- range $key, $secret := $.Values.daprSecrets }}
+    - name: {{ $key }}
+      secretKeyRef:
+        name: dapr-secret
+        key: {{ $key | quote }}
+    {{- end }}

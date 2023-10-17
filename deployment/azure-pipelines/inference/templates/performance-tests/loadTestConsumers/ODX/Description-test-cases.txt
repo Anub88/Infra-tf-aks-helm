@@ -1,0 +1,35 @@
+ODX - a folder containg following use cases:
+ 
+ -> retrieveInference: retrival of inference data from a table storage
+ -> postAPI: calculateing the inference (with an AI algorithm provided from ODX) and writing the result in a table storage 
+
+----------------------------------------------------------------------------------------
+retrieveInference - a folder containig:
+	
+	-> scenario1: a folder containg a config.yaml and testPlan.jmx with
+				  number of engines = 40
+				  number of threads = 100
+				  ramp up time 		= 30 sec
+    
+	-> scenario2: a folder containg a config.yaml and testPlan.jmx with
+				  number of engines = 5 
+				  number of threads = 10 
+				  ramp up time      = 2  sec
+	
+	-> ExamKey_TenantId.csv: contains combinations of TannedId and ExamId, which are already available in the table storage (qa env). If the content of the table 	storage is deleated/changed, then this .csv needs to be updated as well. Using distinct combinations is needed for a test of the get request with a high load to ensure that values are not cached, but distinct elements of the table are retrieved.
+
+----------------------------------------------------------------------------------------
+triggerInference - a folder containig:
+	
+	-> scenario1: a folder containg a config.yaml and testPlan.jmx with
+				  number of engines = 10
+				  number of threads = 2
+				  ramp up time 		= 30 sec
+    
+	-> scenario2: a folder containg a config.yaml and testPlan.jmx with
+				  number of engines = 1
+				  number of threads = 15
+				  ramp up time 		= 5  sec
+
+----------------------------------------------------------------------------------------
+Note: number of virtal users = number of engines * number of threads

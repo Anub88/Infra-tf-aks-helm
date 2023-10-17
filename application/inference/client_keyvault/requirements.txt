@@ -1,0 +1,8 @@
+# Azure
+azure-core
+azure-identity==1.10.0
+azure-keyvault
+azure-keyvault-certificates
+
+# MLware
+mlware==1.1.18

@@ -1,0 +1,103 @@
+parameters:
+  - name: buildagent
+    type: string
+    displayName: "buildagent name"
+    default: "IAA-Buildagent"
+  - name: serviceConnection
+    type: string
+    displayName: "Connection string"
+    default: "sp-iaa-dev-tf-serviceconnection"
+  - name: envshortcode
+    type: string
+    displayName: "environment short code dev/qa/stage"
+    default: dev
+  - name: namespace
+    type: string
+    displayName: "namespace to install"
+    default: "default"
+  - name: helmchart
+    type: string
+    displayName: "name to helmchart"
+    default: "odx"
+  - name: helmrelasename
+    type: string
+    displayName: "name for helm release"
+    default: "default"
+
+  - name: helmvalues
+    type: string
+    displayName: "values of helm"
+    default: "values.yaml"
+  - name: environment
+    type: string
+    displayName: "Environment"
+  - name: Command
+    type: string
+    displayName: "Helm Command install/upgrade/uninstall"
+    default: "upgrade"
+  - name: flags
+    type: string
+    displayName: "custom flags"
+  - name: region
+    type: string
+    displayName: "region"
+    default: "weus"
+
+jobs:
+  - deployment: ${{ parameters.envshortcode }}_deployment
+    pool:
+      name: HDP Image Analyzer Application Agent
+      demands:
+        - agent.name -equals ${{ parameters.buildagent }}
+    environment: ${{parameters.environment}}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+            - task: HelmInstaller@0
+              inputs:
+                helmVersion: "latest"
+                installKubectl: true
+
+            - task: AzureCLI@2
+              displayName: set kubernetes namespace
+              inputs:
+                azureSubscription: ${{ parameters.serviceConnection }}
+                scriptType: "bash"
+                scriptLocation: "inlineScript"
+                inlineScript: |
+                  az --version
+                  az account show
+                  az aks get-credentials --resource-group rg-mlw-${{ parameters.envshortcode }}-${{ parameters.region}} --name aks-mlif-${{ parameters.envshortcode }}-${{ parameters.region}}-01 --overwrite-existing
+                  kubectl create namespace ${{ parameters.namespace }} --dry-run=client -o yaml | kubectl apply -f -
+                  kubectl get namespaces
+                  ls -ltr
+                addSpnToEnvironment: true
+
+            - task: AzureKeyVault@2
+              displayName: Getting Keyvault Connection
+              inputs:
+                azureSubscription: ${{ parameters.serviceConnection }}
+                KeyVaultName: "kv-mlws-${{ parameters.envshortcode }}-weus"
+                SecretsFilter: "*"
+                RunAsPreJob: true
+
+            - task: CmdLine@2
+              inputs:
+                script: |
+                  if [ "${{ parameters.Command }}" == "uninstall" ] || [ "${{ parameters.Command }}" == " uninstall" ] || [ "${{ parameters.Command }}" == "   uninstall" ]
+                  then (
+                    helm uninstall ${{ parameters.helmrelasename }} -n ${{ parameters.namespace }} || exit 1
+                  ) else(
+                    cd infrastructure/kubernetes/helm-releases/charts
+                    helm ${{ parameters.Command }} ${{ parameters.helmrelasename }} ./${{ parameters.helmchart }} -n ${{ parameters.namespace }} ${{ parameters.flags }} -f ./${{ parameters.helmchart }}/${{ parameters.helmvalues }} || exit 1
+                  )
+                  fi
+            - task: CmdLine@2
+              displayName: unset Kube context
+              inputs:
+                script: |
+                  kubectl config unset users.aks-mlif-${{ parameters.envshortcode }}-${{ parameters.region}}-01
+                  kubectl config unset contexts.aks-mlif-${{ parameters.envshortcode }}-${{ parameters.region}}-01
+                  kubectl config unset clusters.aks-mlif-${{ parameters.envshortcode }}-${{ parameters.region}}-01;

@@ -1,0 +1,43 @@
+model:
+  modelOwner: Zeiss Meditec AG
+  modelName: modelX
+  modelVersion: 1.0.0 #use semantic versioning
+  modelDescription: model description that provides details of model purpose and intention
+  modelFramework: scikit-learn #scikit-learn, pytorch, keras, matlab
+  modelArtifact: pkl #pkl, h5, onnx
+  modelRuntime: python #python, onnx, C++
+  modelRuntimeVersion: 3.9
+compute:
+  instance:
+    computeOS: ubuntu #ubuntu, windows, etc.
+    computeOSVersion: 20.04 #OS version according to computeOS
+    computeArchitecture: gpu #cpu, gpu
+    computeCores: 2
+    computeMemoryInGB: 2.0
+  instanceNumberMinimum: 4 #specification of minimum number of model compute instances required, minimum number of instances for scale-in process
+  instanceNumberMaximum: 6 #specification of maximum number of model compute instances required, maximum number of instances for scale-out process
+data:
+  format:
+    modality: OCT #OCT, Fundus, VisualField
+    clinicalHardwareType: #CIRRUS, Plex, CIRRUS 5000, 6000
+    - CIRRUS 5000
+    - CIRRUS 6000
+    dataMode: AngioScan #AngioScan, StructuralScan
+    dataFormat: dcm #dcm or video formats
+    dataScanLocation: Macular #Macular, ONH
+    dataScanPatternX: 512 #512, 200
+    dataScanPatternY: 128 #128, 200
+    requiredQuality: high
+  clinical:
+    patient:
+      age:
+        minimum: 25
+        maximum: 65
+      gender:
+      - female
+      - male
+approval:
+  approvedRegion:
+  - Europe
+  - US
+  approvalState: approved #approved, pre-study

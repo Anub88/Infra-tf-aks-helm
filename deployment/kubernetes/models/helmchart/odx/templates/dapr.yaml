@@ -1,0 +1,13 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata :
+    name : {{ .Values.dapr.name }}
+    namespace: {{ .Values.dapr.namespace }}
+spec:
+  type: {{ .Values.dapr.type }}
+  version : {{ .Values.dapr.version }}
+  metadata:
+    {{- range .Values.dapr.metadata }}
+    - name: {{ .name | quote }}
+      value: {{ .value | quote }}
+    {{- end }}

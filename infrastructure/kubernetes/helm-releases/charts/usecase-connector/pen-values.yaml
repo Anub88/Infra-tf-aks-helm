@@ -1,0 +1,123 @@
+# Default values for usecase-connector.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: acrmlwspenweus.azurecr.io/aixs-core-connector
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: 
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {
+        dapr.io/enabled: "true",
+        dapr.io/app-port: "8000",
+        dapr.io/app-id : "usecase-connector",
+        dapr.io/log-level: "debug",
+        dapr.io/enable-api-logging: "true",
+        dapr.io/sidecar-cpu-limit: "100m",
+        dapr.io/sidecar-memory-limit: "1000Mi",
+        dapr.io/sidecar-cpu-request: "50m",
+        dapr.io/sidecar-memory-request: "250Mi",
+        dapr.io/enable-app-health-check: "true",
+        dapr.io/app-health-probe-interval: "5",
+        dapr.io/app-protocol: "http",
+        dapr.io/sidecar-liveness-probe-delay-seconds: "20",
+        dapr.io/sidecar-readiness-probe-delay-seconds: "20"
+}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+limits:
+    cpu: 500m
+    memory: 600Mi
+requests:
+    cpu: 500m
+    memory: 300Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {
+  agentpool : "default"
+}
+
+tolerations: []
+
+affinity: {}
+
+# Environment Variables  
+env:
+  ENV_STATE: 
+  CONFIG_AI_APPLICATION_ID:
+  CONFIG_POD_NAME: 
+  CONFIG_SUPERVISOR_RUN_ENDPOINT: 
+  CONFIG_SUPERVISOR_READY_ENDPOINT: 
+  CONFIG_SUPERVISOR_RUN_TIMEOUT: 
+  CONFIG_SUPERVISOR_READY_TIMEOUT: 
+
+# Dapr - Config 
+daprSecrets:
+  azureClientSecret:
+  azureClientId:
+  azureTenantId:
+
+daprVariables:
+  vaultName:
+  subscriptionID:
+  resourceGroupName:
+  eventHubNamespace:
+  storageAccountName:
+  storageContainerName:

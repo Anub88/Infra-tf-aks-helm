@@ -1,0 +1,69 @@
+name: $(majorMinorVersion).$(semanticVersion).$(rev:r)
+
+trigger: none
+
+pool:
+  name: HDP Image Analyzer Application Agent
+  demands: 
+    - agent.name -equals IAA-Buildagent
+
+variables:
+  majorMinorVersion: 0.0
+  semanticVersion: 0
+  BuildConfiguration: 'Release'
+  serviceConnection: 'sp-iaa-dev-subscription-tf-serviceconnection'
+
+stages:
+- stage: copy_docker
+  displayName: Copy Docker Image from Public to Private ACR
+  jobs:
+  - template: "templates/mlware-infer-app-model-discovery-copy-docker-template.yaml"
+    parameters:
+      serviceConnection: "$(serviceConnection)"
+      envShortCode: "dev"
+
+- stage: development_deployment
+  displayName: Deploy to Dev
+  dependsOn: copy_docker
+  jobs:
+  - template: "templates/mlware-infer-app-model-discovery-deploy-docker-template.yaml"
+    parameters:
+      envShortCode: "dev"
+      azureDevOpsEnvironment: "iaa - Development"
+      serviceConnection: "$(serviceConnection)"
+      namespace: "carinoct"
+      kubernetesDeploymentFile: "oct-model-deployment.yml"
+
+- stage: stage_deployment
+  displayName: Stage Deployment
+  dependsOn: development_deployment
+  jobs:
+    - deployment: stage_deployment
+      displayName: Deploy to Stage (Dummy - Not Yet Implemented)
+      environment: iaa - Stage  
+      strategy:
+          runOnce:
+            deploy:
+              steps:
+              - task: CmdLine@2
+                inputs:
+                  script: |
+                    ls -l
+                    echo "Stage Environment"
+
+- stage: production_deployment
+  displayName: Deploy to Prod (Dummy - Not Yet Implemented)
+  dependsOn: stage_deployment
+  jobs:
+    - deployment: production_deployment
+      displayName: Production Deployment
+      environment: iaa - Production  
+      strategy:
+          runOnce:
+            deploy:
+              steps:
+              - task: CmdLine@2
+                inputs:
+                  script: |
+                    ls -l
+                    echo "Production Envinronment"

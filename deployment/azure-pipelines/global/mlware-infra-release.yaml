@@ -1,0 +1,47 @@
+# Releases for all states and environments.
+
+name: $(Date:yyyyMMdd)$(Rev:.r)-infrastructure-release
+
+trigger:
+  - release*
+
+stages:
+  # Release QA environment.
+  - template: "templates/stages/plan-states-template.yaml"
+    parameters:
+      envShortCode: "qa"
+  - template: "templates/stages/release-states-template.yaml"
+    parameters:
+      envShortCode: "qa"
+  - stage: tag_release_qa
+    displayName: "Tag QA release."
+    dependsOn:
+      - deploy_qa_apimgmt
+      - deploy_qa_mlware
+      - deploy_dev_buildagent
+      - deploy_dev_shared
+      - deploy_qa_s2s_appregistrations
+    jobs:
+      - template: "templates/jobs/tag-template.yaml"
+        parameters:
+          tagString: "dev/$(currentTimeStamp)_$(Build.SourceBranchName)"
+  # Release Stage environment.
+  - template: "templates/stages/plan-states-template.yaml"
+    parameters:
+      envShortCode: "stage"
+      dependson: "tag_release_qa"
+  - template: "templates/stages/release-states-template.yaml"
+    parameters:
+      envShortCode: "stage"
+  - stage: tag_release_stage
+    displayName: "Tag Stage release."
+    dependsOn:
+      - deploy_stage_buildagent
+      - deploy_stage_shared
+      - deploy_stage_mlware
+      - deploy_stage_apimgmt
+      - deploy_stage_s2s_appregistrations
+    jobs:
+      - template: "templates/jobs/tag-template.yaml"
+        parameters:
+          tagString: "stage/$(currentTimeStamp)_$(Build.SourceBranchName)"

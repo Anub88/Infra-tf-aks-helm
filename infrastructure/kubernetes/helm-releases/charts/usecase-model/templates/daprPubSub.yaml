@@ -1,0 +1,14 @@
+{{- if .Values.dapr.enabled  -}}
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata :
+  name : pubsubazuresb
+spec:
+  type: pubsub.azure.servicebus
+  version : v1
+  metadata:
+    {{- range $key, $value := $.Values.dapr.metadata }}
+    - name: {{ $key }}
+      value: {{ $value | quote }}
+    {{- end }}
+{{- end }}

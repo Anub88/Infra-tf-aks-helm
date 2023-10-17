@@ -1,0 +1,78 @@
+WIKI CLEANUP
+
+Onboarding
+        IDE
+        Python
+        Testint
+        Debugging
+        templates?
+    
+Development Team Space
+    .attachements
+    Python Application Code
+        Error Handling
+        Python Guidelines
+        Package Management
+    Infrastructure
+        Terraform
+        Azure APIM
+        Azure Functions
+        Azure ACR
+        Azure Kubernetes
+    Devops
+        Build Pipelines
+        Build Agent
+        Environments
+    Conventions
+        Branch Naming
+
+Architecture and Design
+    .attachements
+    Decision Records
+    Use Cases
+        Inference
+        Model Onboarding
+        Training
+        Workflow
+    ODX/Basiccare Solution
+        Design
+
+
+
+Security and Reliability
+    .attachements
+    Concepts
+    Tools
+        BlackDuck
+        Coverity
+        Checkov
+    Azure
+        Defender
+        Alerts
+    Threat Modeling
+        Ref
+    Disaster Recovery
+        Incident Response
+        Business Cont.
+
+    
+    
+Compliance
+    Security Compliance
+    QA&QM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

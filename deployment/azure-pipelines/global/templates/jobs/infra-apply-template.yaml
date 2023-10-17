@@ -1,0 +1,62 @@
+# Job template for deployment of a terraform plan.
+parameters:
+  - name: envShortCode
+    type: string
+    displayName: "Environment of the job (short code format: dev/qa/stage)"
+    default: "dev"
+  - name: subscriptionShortCode
+    type: string
+    displayName: "Short code for the azure Subscription stage"
+    default: "dev"
+  - name: stateFile
+    type: string
+    displayName: "The name of the state file to refer to"
+    default: ""
+  - name: azureDevOpsEnvironment
+    type: string
+    displayName: "DevOps Environment "
+  - name: workDir
+    type: string
+    displayName: "Working directory"
+    default: "."
+  - name: buildId
+    type: string
+    displayName: "ID of the build"
+  - name: buildAgentName
+    type: string
+    displayName: "Build Agent name"
+  - name: pathToTFCode
+    type: string
+    displayName: "Path to terraform code"
+
+jobs:
+  - deployment: deploy_azure_resources
+    pool:
+      ${{ if eq(parameters.buildAgentName, 'ubuntu') }}:
+        vmImage: "ubuntu-latest"
+      ${{ else }}:
+        name: HDP Image Analyzer Application Agent
+        demands:
+          - agent.name -equals ${{ parameters.buildAgentName }}
+    displayName: deploy - ${{ parameters.envShortCode }} - ${{ replace(parameters.pathToTFCode, 'infrastructure/', '') }}
+    environment: ${{ parameters.azureDevOpsEnvironment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            # Enable execution permission on azurerm plugin
+            - task: TerraformTaskV2@2
+              displayName: Terraform Apply
+              inputs:
+                provider: "azurerm"
+                command: "apply"
+                workingDirectory: "${{ parameters.workDir }}/${{ parameters.pathToTFCode }}"
+                commandOptions: "${{ parameters.workDir }}/${{ parameters.pathToTFCode }}/${{ parameters.envShortCode }}-$(Build.BuildId).out"
+                # This if/else for dev needs to change by:
+                # - renaming the service connection
+                # - renaming the storage account name
+                ${{ if eq(parameters.subscriptionShortCode, 'dev') }}:
+                  environmentServiceNameAzureRM: "sp-iaa-tf-serviceconnection"
+                ${{ else}}:
+                  environmentServiceNameAzureRM: "sp-iaa-${{ parameters.subscriptionShortCode }}-tf-serviceconnection"
+              enabled: true

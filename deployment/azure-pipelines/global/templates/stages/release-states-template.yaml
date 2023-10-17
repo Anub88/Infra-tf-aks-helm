@@ -1,0 +1,204 @@
+# Stage template runs for all states and is parameterized by environment.
+# Run plan+apply and optionally tag.
+parameters:
+  - name: envShortCode
+    type: string
+    displayName: "Environment of the job (short code format: dev/qa/stage/prod)"
+    default: "dev"
+    values:
+      - dev
+      - qa
+      - stage
+      - prod
+  - name: tagApply
+    type: boolean
+    displayName: "Publish tracing apply tag or not."
+    default: true
+
+stages:
+  # If QA then plan the buildagent dev state.
+  - ${{ if eq(parameters.envShortCode, 'qa') }}:
+      - stage: deploy_dev_buildagent
+        displayName: "Deploy - dev - buildagent"
+        dependsOn: terraform_plan_dev_buildagent
+        variables:
+          - template: "../../vars/dev-vars.yaml"
+        jobs:
+          - template: "../jobs/infra-release-template.yaml"
+            parameters:
+              envShortCode: "dev"
+              subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+              stateFile: "${{ variables.stateFileBuildAgent }}"
+              workDir: "$(System.DefaultWorkingDirectory)"
+              buildId: "$(Build.BuildId)"
+              pathToTFCode: "infrastructure/build-agent"
+              buildAgentName: "${{ variables.managedBuildAgentName }}"
+              azureDevOpsEnvironment: "${{ variables.azureDevOpsEnvironment }}"
+              stateDisplayName: buildagent
+          - ${{ if parameters.tagApply }}:
+              - template: "../jobs/tag-template.yaml"
+                parameters:
+                  tagString: "tracing/dev/buildagent/$(currentTimeStamp)_$(Build.SourceBranchName)"
+                  dependson: "deploy_azure_resources"
+  - ${{ else }}:
+      - stage: deploy_${{ parameters.envShortCode }}_buildagent
+        displayName: "Deploy - ${{ parameters.envShortCode }} - buildagent"
+        dependsOn: terraform_plan_${{ parameters.envShortCode }}_buildagent
+        variables:
+          - template: "../../vars/${{ parameters.envShortCode }}-vars.yaml"
+        jobs:
+          - template: "../jobs/infra-release-template.yaml"
+            parameters:
+              envShortCode: "${{ parameters.envShortCode }}"
+              subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+              stateFile: "${{ variables.stateFileBuildAgent }}"
+              workDir: "$(System.DefaultWorkingDirectory)"
+              buildId: "$(Build.BuildId)"
+              pathToTFCode: "infrastructure/build-agent"
+              buildAgentName: "${{ variables.managedBuildAgentName }}"
+              azureDevOpsEnvironment: "${{ variables.azureDevOpsEnvironment }}"
+              stateDisplayName: buildagent
+          - ${{ if parameters.tagApply }}:
+              - template: "../jobs/tag-template.yaml"
+                parameters:
+                  tagString: "tracing/${{ parameters.envShortCode }}/buildagent/$(currentTimeStamp)_$(Build.SourceBranchName)"
+                  dependson: "deploy_azure_resources"
+  # If QA then plan the shared dev state.
+  - ${{ if eq(parameters.envShortCode, 'qa') }}:
+      - stage: deploy_dev_shared
+        displayName: "Deploy - dev - shared"
+        dependsOn: terraform_plan_dev_shared
+        variables:
+          - template: "../../vars/dev-vars.yaml"
+        jobs:
+          - template: "../jobs/infra-release-template.yaml"
+            parameters:
+              envShortCode: "shared"
+              subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+              stateFile: "${{ variables.stateFileShared }}"
+              workDir: "$(System.DefaultWorkingDirectory)"
+              buildId: "$(Build.BuildId)"
+              pathToTFCode: "infrastructure/shared"
+              buildAgentName: "${{ variables.selfBuildAgentName }}"
+              azureDevOpsEnvironment: "${{ variables.azureDevOpsEnvironment }}"
+              stateDisplayName: shared
+          - ${{ if parameters.tagApply }}:
+              - template: "../jobs/tag-template.yaml"
+                parameters:
+                  tagString: "tracing/dev/shared/$(currentTimeStamp)_$(Build.SourceBranchName)"
+                  dependson: "deploy_azure_resources"
+  - ${{ elseif eq(parameters.envShortCode, 'stage') }}:
+      - stage: deploy_${{ parameters.envShortCode }}_shared
+        displayName: "Deploy - ${{ parameters.envShortCode }} - shared"
+        dependsOn: terraform_plan_${{ parameters.envShortCode }}_shared
+        variables:
+          - template: "../../vars/${{ parameters.envShortCode }}-vars.yaml"
+        jobs:
+          - template: "../jobs/infra-release-template.yaml"
+            parameters:
+              envShortCode: "stage"
+              subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+              stateFile: "${{ variables.stateFileShared }}"
+              workDir: "$(System.DefaultWorkingDirectory)"
+              buildId: "$(Build.BuildId)"
+              pathToTFCode: "infrastructure/shared"
+              buildAgentName: "${{ variables.selfBuildAgentName }}"
+              azureDevOpsEnvironment: "${{ variables.azureDevOpsEnvironment }}"
+              stateDisplayName: shared
+          - ${{ if parameters.tagApply }}:
+              - template: "../jobs/tag-template.yaml"
+                parameters:
+                  tagString: "tracing/${{ parameters.envShortCode }}/shared/$(currentTimeStamp)_$(Build.SourceBranchName)"
+                  dependson: "deploy_azure_resources"                
+  - ${{ else }}:
+      - stage: deploy_${{ parameters.envShortCode }}_shared
+        displayName: "Deploy - ${{ parameters.envShortCode }} - shared"
+        dependsOn: terraform_plan_${{ parameters.envShortCode }}_shared
+        variables:
+          - template: "../../vars/${{ parameters.envShortCode }}-vars.yaml"
+        jobs:
+          - template: "../jobs/infra-release-template.yaml"
+            parameters:
+              envShortCode: "shared"
+              subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+              stateFile: "${{ variables.stateFileShared }}"
+              workDir: "$(System.DefaultWorkingDirectory)"
+              buildId: "$(Build.BuildId)"
+              pathToTFCode: "infrastructure/shared"
+              buildAgentName: "${{ variables.selfBuildAgentName }}"
+              azureDevOpsEnvironment: "${{ variables.azureDevOpsEnvironment }}"
+              stateDisplayName: shared
+          - ${{ if parameters.tagApply }}:
+              - template: "../jobs/tag-template.yaml"
+                parameters:
+                  tagString: "tracing/${{ parameters.envShortCode }}/shared/$(currentTimeStamp)_$(Build.SourceBranchName)"
+                  dependson: "deploy_azure_resources"
+
+  - stage: deploy_${{ parameters.envShortCode }}_mlware
+    displayName: "Deploy - ${{ parameters.envShortCode }} - mlware"
+    dependsOn: terraform_plan_${{ parameters.envShortCode }}_mlware
+    variables:
+      - template: "../../vars/${{ parameters.envShortCode }}-vars.yaml"
+    jobs:
+      - template: "../jobs/infra-release-template.yaml"
+        parameters:
+          envShortCode: "${{ parameters.envShortCode }}"
+          subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+          stateFile: "${{ variables.stateFileMlware }}"
+          workDir: "$(System.DefaultWorkingDirectory)"
+          buildId: "$(Build.BuildId)"
+          pathToTFCode: "infrastructure/mlware"
+          buildAgentName: "${{ variables.selfBuildAgentName }}"
+          azureDevOpsEnvironment: "${{ variables.azureDevOpsEnvironment }}"
+          stateDisplayName: mlware
+      - ${{ if parameters.tagApply }}:
+          - template: "../jobs/tag-template.yaml"
+            parameters:
+              tagString: "tracing/${{ parameters.envShortCode }}/mlware/$(currentTimeStamp)_$(Build.SourceBranchName)"
+              dependson: "deploy_azure_resources"
+
+  - stage: deploy_${{ parameters.envShortCode }}_apimgmt
+    displayName: "Deploy - ${{ parameters.envShortCode }} - apimgmt"
+    dependsOn: terraform_plan_${{ parameters.envShortCode }}_apimgmt
+    variables:
+      - template: "../../vars/${{ parameters.envShortCode }}-vars.yaml"
+    jobs:
+      - template: "../jobs/infra-release-template.yaml"
+        parameters:
+          envShortCode: "${{ parameters.envShortCode }}"
+          subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+          stateFile: "${{ variables.stateFileApim }}"
+          workDir: "$(System.DefaultWorkingDirectory)"
+          buildId: "$(Build.BuildId)"
+          pathToTFCode: "infrastructure/apimgmt"
+          buildAgentName: "${{ variables.selfBuildAgentName }}"
+          azureDevOpsEnvironment: "${{ variables.azureDevOpsEnvironment }}"
+          stateDisplayName: apimgmt
+      - ${{ if parameters.tagApply }}:
+          - template: "../jobs/tag-template.yaml"
+            parameters:
+              tagString: "tracing/${{ parameters.envShortCode }}/apimgmt/$(currentTimeStamp)_$(Build.SourceBranchName)"
+              dependson: "deploy_azure_resources"
+
+  - stage: deploy_${{ parameters.envShortCode }}_s2s_appregistrations
+    displayName: "Deploy - ${{ parameters.envShortCode }} - s2s-appregistrations"
+    dependsOn: terraform_plan_${{ parameters.envShortCode }}_s2s_appregistrations
+    variables:
+      - template: "../../vars/${{ parameters.envShortCode }}-vars.yaml"
+    jobs:
+      - template: "../jobs/infra-release-template.yaml"
+        parameters:
+          envShortCode: "${{ parameters.envShortCode }}"
+          subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+          stateFile: "${{ variables.stateFileappregistrations }}"
+          workDir: "$(System.DefaultWorkingDirectory)"
+          buildId: "$(Build.BuildId)"
+          pathToTFCode: "infrastructure/hdp_appregistrations"
+          buildAgentName: "${{ variables.selfBuildAgentName }}"
+          azureDevOpsEnvironment: "${{ variables.azureDevOpsEnvironment }}"
+          stateDisplayName: hdp_appregistrations
+      - ${{ if parameters.tagApply }}:
+          - template: "../jobs/tag-template.yaml"
+            parameters:
+              tagString: "tracing/${{ parameters.envShortCode }}/hdp_appregistrations/$(currentTimeStamp)_$(Build.SourceBranchName)"
+              dependson: "deploy_azure_resources"

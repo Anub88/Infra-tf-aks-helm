@@ -1,0 +1,246 @@
+
+trigger: none
+
+parameters:
+     - name: envShortCode
+       type: string
+       displayName: "Environment :"
+       default: "dev"
+       values:
+            - "dev"
+            - "qa"
+            - "stage"
+            - "pen"
+
+     - name: usecasename
+       type: string
+       displayName: "Name of usecase :"
+
+     - name: settingservicebuildnumber
+       type: string
+       displayName: "Settings service Build Number :"
+       default: "buildnumber"
+      
+     - name: settingservicehelmcmd
+       type: string
+       displayName: "Settings service Helm Command (install/uninstall/upgrade) :"
+       default: " "
+
+     - name: usecaseAppidsettingservice
+       type: string
+       displayName: "Settings service usecase APP ID of Collection :"
+       default: "dummyid"  
+
+     - name: configurationservicebuildnumber
+       type: string
+       displayName: "configuration service Build Number :"
+       default: "buildnumber"
+      
+     - name: configurationservicehelmcmd
+       type: string
+       displayName: "configuration service Helm Command (install/uninstall/upgrade) :"
+       default: " "
+
+     - name: connectorservicebuildnumber
+       type: string
+       displayName: "Connector service Build Number :"
+       default: "buildnumber"
+
+     - name: connectorhelmcmd
+       type: string
+       displayName: "Connector Helm Command (install/uninstall/upgrade) :"
+       default: " "
+
+     - name: dataproxyhelmcmd
+       type: string
+       displayName: "DataProxy Helm Command (install/uninstall/upgrade) :"
+       default: " "
+
+     - name: usecasenodeselector
+       type: string
+       displayName: "Usecase node selection (node name ) :"
+       default: "default"
+
+     - name: usecaseservicebuildnumber
+       type: string
+       displayName: "Usecase service Build Number:"
+       default: "buildnumber"
+
+     - name: supervisorservicebuildnumber
+       type: string
+       displayName: "Supervisor service Build Number :"
+       default: "buildnumber"
+       
+     - name: usecasehelmcmd
+       type: string
+       displayName: "Usecase Helm Command (install/uninstall/upgrade) :"
+       default: " "
+
+variables:
+  - name: buildagent
+    ${{ if or(eq(parameters.envShortCode, 'dev'), eq(parameters.envShortCode, 'qa')) }}:
+      value: "IAA-Buildagent"
+    ${{ else }}:
+      value: "IAA-Buildagent-stage"
+      
+  - name: serviceConnection
+    ${{ if eq( parameters.envShortCode, 'dev') }}:
+      value: "sp-aks-dev-aixs-serviceconnection"
+    ${{ elseif eq( parameters.envShortCode, 'qa') }}:
+      value: "sp-aks-qa-aixs-serviceconnection"
+    ${{ elseif eq( parameters.envShortCode, 'stage')}}:
+      value: "sp-aks-stage-aixs-serviceconnection" 
+    ${{ elseif eq( parameters.envShortCode, 'pen') }}:
+      value: "sp-aks-pen-aixs-serviceconnection"
+
+  - name: environment
+    ${{ if eq( parameters.envShortCode, 'dev') }}:
+      value: "iaa - Development"
+    ${{ elseif eq( parameters.envShortCode, 'qa') }}:
+      value: "iaa - QA"
+    ${{ elseif eq( parameters.envShortCode, 'pen') }}:
+      value: "iaa - pen"
+    ${{ else }}:
+      value: "iaa - Stage" 
+
+  - name: serviceprincipal
+    ${{ if or(eq(parameters.envShortCode, 'dev'), eq(parameters.envShortCode, 'qa')) }}:
+      value: "sp-iaa-tf-serviceconnection"
+    ${{ elseif or(eq(parameters.envShortCode, 'stage'), eq(parameters.envShortCode, 'pen')) }}:
+      value: "sp-iaa-stage-tf-serviceconnection"
+    ${{ else }}:
+      value: "sp-iaa-${{ parameters.envShortCode }}-tf-serviceconnection"
+
+stages:
+        
+    - stage: settings_service 
+      displayName: Settings Service     
+      condition:  |
+       or(contains('${{ parameters.settingservicehelmcmd }}', 'uninstall'),
+       and(contains('${{ parameters.settingservicehelmcmd }}', 'install'),ne('${{ parameters.usecaseAppidsettingservice }}', 'dummyid') ,ne('${{ parameters.settingservicebuildnumber }}', 'buildnumber')),
+       and(not(eq('${{ parameters.settingservicebuildnumber }}', 'buildnumber')), contains('${{ parameters.settingservicehelmcmd }}', 'upgrade')))
+      dependsOn: [] 
+      jobs:
+      - template: "templates/deployment-helm-template.yaml"
+        parameters:
+          buildagent: ${{ variables.buildagent }}
+          serviceConnection: ${{ variables.serviceConnection }}
+          environment:  ${{ variables.environment }}
+          envshortcode: ${{ parameters.envShortCode }}
+          namespace: "${{ parameters.usecasename }}-connector-ns"
+          helmchart: "settings-service"
+          helmrelasename: "settings-service"
+          helmvalues: ${{ parameters.envShortCode }}-values.yaml
+          Command: ${{ parameters.settingservicehelmcmd }}
+          flags: "--set 'image.tag=${{ parameters.settingservicebuildnumber }}' --set 'archive.namespace=${{ parameters.usecasename }}-connector-ns' --set 'archive.collectionName=${{ parameters.usecaseAppidsettingservice }}_archive' --set 'mangodb.collectionName=${{ parameters.usecaseAppidsettingservice }}' --set 'secret.cosmospassword=$(cosmos-mongodb-rw-password)' --set 'env[2].value=${{ parameters.usecaseAppidsettingservice }}' --set 'env[3].value=${{ parameters.usecaseAppidsettingservice }}_archive' --set 'env[1].value=${{ parameters.usecaseAppidsettingservice }}' --set 'env[5].value=DEBUG' --set 'env[6].value=${{ parameters.usecasename }}-connector-ns'"
+
+    - stage: configuration_service
+      displayName: configuration Service     
+      condition:  |
+       or(contains('${{ parameters.configurationservicehelmcmd }}', 'uninstall'),
+       and(contains('${{ parameters.configurationservicehelmcmd }}', 'install') ,ne('${{ parameters.configurationservicebuildnumber }}', 'buildnumber')),
+       and(not(eq('${{ parameters.configurationservicebuildnumber }}', 'buildnumber')), contains('${{ parameters.configurationservicehelmcmd }}', 'upgrade')))
+      dependsOn: [] 
+      jobs:
+      - template: "templates/deployment-helm-template.yaml"
+        parameters:
+          buildagent: ${{ variables.buildagent }}
+          serviceConnection: ${{ variables.serviceConnection }}
+          environment:  ${{ variables.environment }}
+          envshortcode: ${{ parameters.envShortCode }}
+          namespace: "${{ parameters.usecasename }}-connector-ns"
+          helmchart: "usecase-configuration"
+          helmrelasename: "usecase-configuration"
+          helmvalues: values.yaml
+          Command: ${{ parameters.configurationservicehelmcmd }}
+          flags: "--set 'tag=${{ parameters.configurationservicebuildnumber }}' --set 'replicaCount=1' --set 'registry=acrmlws${{ parameters.envShortCode }}weus.azurecr.io' --set 'agentpool=default' --set 'env.ENV_STATE=${{ parameters.envShortCode }}' --set 'usecaseName=${{parameters.usecasename}}' --set 'fullnameOverride=${{ parameters.usecasename }}-configuration' "
+
+    - stage: connector_service
+      displayName: Connector Service
+      condition: or(contains('${{ parameters.connectorhelmcmd }}', 'uninstall'),and(not(contains('${{ parameters.connectorservicebuildnumber }}', 'buildnumber')),contains('${{ parameters.connectorhelmcmd }}', 'install')),and(not(contains('${{ parameters.connectorservicebuildnumber }}', 'buildnumber')),contains('${{ parameters.connectorhelmcmd }}', 'upgrade')))
+      dependsOn: [] 
+      jobs:
+      - template: "templates/deployment-helm-template.yaml"
+        parameters:
+          buildagent: ${{ variables.buildagent }}
+          serviceConnection: ${{ variables.serviceConnection }}
+          environment:  ${{ variables.environment }}
+          envshortcode: ${{ parameters.envShortCode }}
+          namespace: "${{ parameters.usecasename }}-connector-ns"
+          helmchart: "usecase-connector"
+          helmrelasename: "usecase-connector"
+          helmvalues: ${{ parameters.envShortCode }}-values.yaml
+          Command: ${{ parameters.connectorhelmcmd }}
+          flags: " --set 'image.tag=${{ parameters.connectorservicebuildnumber }}' --set 'env.ENV_STATE=${{ parameters.envShortCode }}' --set 'env.CONFIG_AI_APPLICATION_ID=84f93c84-a4e9-44ec-b87c-49d8817d3876' --set 'env.CONFIG_SUPERVISOR_RUN_ENDPOINT=http://${{parameters.usecasename}}-model-0.${{parameters.usecasename}}-model.${{ parameters.usecasename}}-model-ns.svc.cluster.local:8000/api/v1/run' --set 'env.CONFIG_SUPERVISOR_READY_ENDPOINT=http://${{parameters.usecasename}}-model-0.${{parameters.usecasename}}-model.${{ parameters.usecasename}}-model-ns.svc.cluster.local:8000/api/v1/ready' --set 'env.CONFIG_SUPERVISOR_RUN_TIMEOUT=60' --set 'env.CONFIG_SUPERVISOR_READY_TIMEOUT=60' --set 'env.CONFIG_POD_NAME=pod/${{parameters.usecasename}}-model-0' --set 'env.CONFIG_PORT=8000' --set 'daprSecrets.azureClientSecret=$(app-reg-dapr-client-secret-mlif-weus-${{ parameters.envShortCode }})' --set 'daprSecrets.azureClientId=$(app-reg-dapr-client-id-mlif-weus-${{ parameters.envShortCode }})' --set 'daprSecrets.azureTenantId=$(azure-tenant-id)' --set 'daprVariables.vaultName=kv-mlws-${{ parameters.envshortcode }}-weus' --set 'daprVariables.subscriptionID=$(resource-subscription-id)' --set 'daprVariables.resourceGroupName=rg-mlw-${{ parameters.envshortcode }}-weus' --set 'daprVariables.eventHubNamespace=eventhub-namespace-mlif-${{ parameters.envShortCode }}-weus' --set 'daprVariables.storageAccountName=eventhubstmlif${{ parameters.envShortCode }}weus' --set 'daprVariables.storageContainerName=eventhub-namespace-mlif-${{ parameters.envShortCode }}-weus-container'"
+
+    - stage: data_proxy_service_base
+      displayName: Data proxy Service Base
+      condition: or(contains('${{ parameters.dataproxyhelmcmd }}', 'uninstall'), contains('${{ parameters.dataproxyhelmcmd }}', 'install'), contains('${{ parameters.dataproxyhelmcmd }}', 'upgrade'))
+      dependsOn: [] 
+      jobs:
+
+             - template: "templates/deployment-helm-template.yaml"
+               parameters:
+                  buildagent: ${{ variables.buildagent }}
+                  serviceConnection: ${{ variables.serviceConnection }}
+                  environment:  ${{ variables.environment }}
+                  envshortcode: ${{ parameters.envShortCode }}
+                  namespace: "${{ parameters.usecasename}}-data-proxy-ns"
+                  helmchart: "bitnami-ngnix"
+                  helmrelasename: "bitnami-ngnix-base"
+                  helmvalues: values-base.yaml
+                  Command: ${{ parameters.dataproxyhelmcmd }}
+                  flags: "--set 'agentpool=default' --set 'hdpBaseDomain=hdpcore-stage.zeiss.com' --set 'namespaceOverride=${{ parameters.usecasename }}-data-proxy-ns'"
+    - stage: data_proxy_service_auth
+      displayName: Data proxy Service auth
+      condition: or(contains('${{ parameters.dataproxyhelmcmd }}', 'uninstall'), contains('${{ parameters.dataproxyhelmcmd }}', 'install'), contains('${{ parameters.dataproxyhelmcmd }}', 'upgrade'))
+      dependsOn: [] 
+      jobs:
+             - template: "templates/deployment-helm-template.yaml"
+               parameters:
+                  buildagent: ${{ variables.buildagent }}
+                  serviceConnection: ${{ variables.serviceConnection }}
+                  environment:  ${{ variables.environment }}
+                  envshortcode: ${{ parameters.envShortCode }}
+                  namespace: "${{ parameters.usecasename }}-data-proxy-ns"
+                  helmchart: "bitnami-ngnix"
+                  helmrelasename: "bitnami-ngnix-auth"
+                  helmvalues: values-auth.yaml
+                  Command: ${{ parameters.dataproxyhelmcmd }}
+                  flags: "--set 'agentpool=default' --set 'hdpAuthDomain=id-ip-stage.zeiss.com'  --set 'namespaceOverride=${{ parameters.usecasename }}-data-proxy-ns'"
+    - stage: data_proxy_service_zeissid
+      displayName: Data proxy Service zeissid
+      condition: or(contains('${{ parameters.dataproxyhelmcmd }}', 'uninstall'), contains('${{ parameters.dataproxyhelmcmd }}', 'install'), contains('${{ parameters.dataproxyhelmcmd }}', 'upgrade'))
+      dependsOn: [] 
+      jobs:
+             - template: "templates/deployment-helm-template.yaml"
+               parameters:
+                buildagent: ${{ variables.buildagent }}
+                serviceConnection: ${{ variables.serviceConnection }}
+                environment:  ${{ variables.environment }}
+                envshortcode: ${{ parameters.envShortCode }}
+                namespace: "${{ parameters.usecasename }}-data-proxy-ns"
+                helmchart: "bitnami-ngnix"
+                helmrelasename: "bitnami-ngnix-zeissid"
+                helmvalues: values-zeissid.yaml
+                Command: ${{ parameters.dataproxyhelmcmd }}
+                flags: "--set 'agentpool=default' --set 'zeissIdApiDomain=zeissidapimanagementstage.azure-api.net' --set 'namespaceOverride=${{ parameters.usecasename }}-data-proxy-ns'"
+
+    - stage: usecase_service
+      displayName: usecase Service
+      condition: or(contains('${{ parameters.usecasehelmcmd }}', 'uninstall'),and(not(contains('${{ parameters.usecaseservicebuildnumber }}', 'buildnumber')),not(contains('${{ parameters.supervisorservicebuildnumber }}', 'buildnumber')),contains('${{ parameters.usecasehelmcmd }}', 'install')),and(not(contains('${{ parameters.usecaseservicebuildnumber }}', 'buildnumber')),not(contains('${{ parameters.supervisorservicebuildnumber }}', 'buildnumber')),contains('${{ parameters.usecasehelmcmd }}', 'upgrade')))
+      dependsOn: [] 
+      jobs:
+      - template: "templates/deployment-helm-template.yaml"
+        parameters:
+          buildagent: ${{ variables.buildagent }}
+          serviceConnection: ${{ variables.serviceConnection }}
+          environment:  ${{ variables.environment }}
+          envshortcode: ${{ parameters.envShortCode }}
+          namespace: "${{ parameters.usecasename }}-model-ns"
+          helmchart: "usecase-model"
+          helmrelasename: "${{ parameters.usecasename}}-model"
+          helmvalues: ${{ parameters.usecasename}}-values.yaml
+          Command: ${{ parameters.usecasehelmcmd }}
+          flags: "--set 'usecaseTag=${{ parameters.usecaseservicebuildnumber }}' --set 'replicaCount=1' --set 'usecaseName=${{parameters.usecasename}}' --set 'fullnameOverride=${{ parameters.usecasename }}-model' --set 'registry=acrmlws${{ parameters.envShortCode }}weus.azurecr.io' --set 'agentpool=${{ parameters.usecasenodeselector }}' --set 'usecaseServicePort=8888' --set 'usecaseEnviromentVariables.ZEISS_TOKEN_URL=http://zeissid-api-proxy.${{ parameters.usecasename }}-data-proxy-ns.svc.cluster.local/V1.0/Device/Authentication/AcquireToken/' --set 'usecaseEnviromentVariables.ZEISS_HDP_URL=http://hdp-base-proxy.${{ parameters.usecasename }}-data-proxy-ns.svc.cluster.local/api/dicom/studies' --set 'usecaseEnviromentVariables.DUMMYMODEL=TRUE' --set 'usecaseEnviromentSecrets.ZEISS_USERNAME=$(hdp-client-hdp-auth-username-usecase)' --set 'usecaseEnviromentSecrets.ZEISS_PASSWORD=$(hdp-client-hdp-auth-password-usecase)' --set 'usecaseEnviromentVariables.ZEISS_APP_ID=$(hdp-client-hdp-app-id)' --set 'usecaseEnviromentVariables.ZEISS_SUBSCRIPTION_KEY=$(hdp-client-hdp-subscription-key)' --set 'usecaseEnviromentVariables.ZEISS_DEVICE_SUBSCRIPTION_KEY=$(hdp-client-hdp-device-subscription-key)'  --set 'usecaseEnviromentVariables.ENV_STATE=${{ parameters.envShortCode }}' --set 'supervisor.tag=${{ parameters.supervisorservicebuildnumber }}' --set 'supervisor.enviromentVariables.CONFIG_AI_APPLICATION_RUN_ENDPOINT=http://localhost:8888/api/v1/execute' --set 'supervisor.enviromentVariables.CONFIG_AI_APPLICATION_TIMEOUT=60' --set 'supervisor.enviromentVariables.CONFIG_STORAGE_ROOT_PATH=/cache/' --set 'supervisor.enviromentVariables.CONFIG_ENVIRONMENT=${{ parameters.envShortCode }}' --set 'supervisor.enviromentVariables.ENV_STATE=${{ parameters.envShortCode }}' --set 'usecaseEnviromentVariables.CONFIG_azure_tenant_id=$(azure-tenant-id)' --set 'usecaseEnviromentVariables.CONFIG_azure_client_app_id=$(appreg-aixs-s2s-hdp-client-id-${{ parameters.envShortCode }}-weus)' --set 'usecaseEnviromentVariables.CONFIG_azure_secret=$(appreg-aixs-s2s-hdp-client-secret-${{ parameters.envShortCode }}-weus)' --set 'usecaseEnviromentVariables.CONFIG_hdp_api_app_id=$(hdp-client-hdp-api-app-id)' --set 'usecaseEnviromentVariables.CONFIG_hdp_tenant_id=$(hdp-tenant-id)' --set 'usecaseEnviromentVariables.CONFIG_hdp_subscription_key=$(hdp-client-hdp-subscription-key)' --set 'usecaseEnviromentVariables.CONFIG_hdp_base_url=$(HDP-CLIENT-BASE-URL)' --set 'usecaseEnviromentVariables.CONFIG_status_service_url=http://usecase-connector-0.usecase-connector.${{ parameters.usecasename}}-connector-ns.svc.cluster.local:8000/api/v1/status' --set 'usecaseEnviromentVariables.CONFIG_setting_service_url=http://settings-service.${{ parameters.usecasename}}-connector-ns.svc.cluster.local:8000/api/v1/settings' --set 'usecaseEnviromentVariables.CONFIG_storage_root_path=/cache/'"
+

@@ -1,0 +1,18 @@
+parameters:
+  - name: workDir
+    type: string
+    displayName: "Working directory"
+    default: "."
+  
+
+steps:
+  #
+  # Run BlackDuck code scan
+  #
+  - task: SynopsysDetectTask@7
+    displayName: SynopsysBlackDuckDetectTask
+    inputs:
+      BlackDuckService: "IAA-MED-GEN-BLACKDUCK"
+      DetectVersion: "latest"
+      DetectArguments: "--blackduck.trust.cert=true --detect.cleanup=true --detect.diagnostic=true --detect.project.name=DQB_AI_Image_analyzer --detect.wait.for.results=true --detect.risk.report.pdf=true --detect.notices.report=true --detect.source.path='${{parameters.workDir}}' --detect.risk.report.pdf.path='/home/vsts/blackduck/'"
+    continueOnError: true

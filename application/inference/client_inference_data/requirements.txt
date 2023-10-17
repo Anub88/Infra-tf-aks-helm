@@ -1,0 +1,14 @@
+pydantic
+
+# Azure
+azure-core
+azure-keyvault-secrets
+azure-identity
+azure-data-tables
+azure-cosmos
+
+# MLware
+mlware==1.1.18
+mlware-keyvault-client>=1.0.8
+# Testing
+pytest

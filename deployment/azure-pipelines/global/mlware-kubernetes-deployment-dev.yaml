@@ -1,0 +1,17 @@
+# Plan and Deploy to dev environment.
+# Use for testing purposes on feature branch.
+
+variables:
+  - template: "vars/dev-vars.yaml"
+
+name: $(Date:yyyyMMdd)$(Rev:.r)-kubernetes-dev
+
+trigger: none
+
+stages:
+  - template: "templates/stages/plan-kubernetes-template.yaml"
+    parameters:
+      envShortCode: "dev"
+  - template: "templates/stages/release-kubernetes-template.yaml"
+    parameters:
+      envShortCode: "dev"

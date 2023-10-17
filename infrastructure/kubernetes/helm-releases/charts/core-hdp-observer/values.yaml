@@ -1,0 +1,50 @@
+# Default values for core-hdp-observer.
+
+# Deployment
+registry: 
+replicaCount: 
+tag:
+# NodeSelector
+agentpool:
+
+# Service
+servicePort: 8000
+
+# DAPR
+port: 8000
+
+resources:
+  limits:
+    memory: 600Mi
+    cpu: 1
+  requests:
+    memory: 300Mi
+    cpu: 500m 
+
+
+# Environment Variables - Secrets (Injected by TF)
+env: 
+  ENV_STATE: 
+  CONFIG_HDP_BASE_ADDRESS: 
+
+envSecrets:
+  CONFIG_TENANT_ID: 
+  CONFIG_CLIENT_APP_ID: 
+  CONFIG_SECRET_ID:
+  CONFIG_API_APP_ID: 
+  CONFIG_SUBSCRIPTION_KEY: 
+  CONFIG_TARGET_TENANT_ID:
+
+# Dapr - Config 
+daprSecrets:
+  azureClientSecret:
+  azureClientId:
+  azureTenantId:
+
+daprVariables:
+  vaultName:
+  subscriptionID:
+  resourceGroupName:
+  eventHubNamespace:
+  storageAccountName:
+  storageContainerName:

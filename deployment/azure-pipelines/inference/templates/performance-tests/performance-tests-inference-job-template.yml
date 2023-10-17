@@ -1,0 +1,49 @@
+parameters:
+  - name: environment # add environment value as 'dev', 'qa', 'prod'
+    type: string
+    displayName: "Environment against which integration tests are executed"
+    default: "dev"
+  - name: buildAgent
+    default: "IAA-BuildAgent"
+  - name: loadTestResource
+    default: "load-test-qa"
+  - name: loadTestResourceGroup
+    default: "rg-mlw-qa-weus"
+  - name: workDirRoot
+    default: "deployment/azure-pipelines/inference/templates/performance-tests"
+  - name: nameConfigFileForTestScenario
+    type: string
+  - name: nameToDisplay
+    type: string
+    
+    
+
+jobs:
+  - job: 
+    displayName: '${{ parameters.nameToDisplay }}'
+    pool:
+      name: HDP Image Analyzer Application Agent
+      demands:
+      - agent.name -equals ${{ parameters.buildAgent }}
+    steps:
+    
+      #
+      # Create and start a load testing
+      #
+      - task: AzureLoadTest@1
+        displayName: "Create and start a load test "
+        inputs:
+          azureSubscription: 'sp-iaa-qa-tf-serviceconnection'  # Name of the Azure Resource Manager service connection
+          loadTestConfigFile: '$(System.DefaultWorkingDirectory)/${{ parameters.workDirRoot }}/${{ parameters.nameConfigFileForTestScenario }}'  
+          resourceGroup: ${{ parameters.loadTestResourceGroup }}
+          loadTestResource: ${{ parameters.loadTestResource }} 
+
+
+
+
+      # =========================================================================================================================
+      # Comments on  AzureLoadTest@1:
+      # Note: to run the task AzureLoadTest@1, you need to grant access (only once) to Azure Load Testing:
+      # see https://learn.microsoft.com/en-us/azure/load-testing/tutorial-identify-performance-regression-with-cicd?tabs=pipelines
+      # Note: you also need to give the service connection (sc) the permission to the current pipeline 
+      # (in the ADO, go to the sc, security -> pipeline permission)

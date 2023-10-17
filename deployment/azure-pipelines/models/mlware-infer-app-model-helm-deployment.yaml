@@ -1,0 +1,69 @@
+parameters:
+  - name: namespace
+    type: string
+    displayName: "namespace to install"
+    default: "default"
+  - name: helmchart
+    type: string
+    displayName: "name to helmchart"
+    default: "odx"
+  - name: Command
+    type: string
+    displayName: "Helm Command install/upgrade/uninstall"
+    default: "upgrade"
+  - name: flags
+    type: string
+    displayName: "custom flags"
+    default: "--set 'dapr.metadata[0].value=$(odx-servicebus-connectionstring)' --set 'env[2].value=$(odx-tablestorage-connectionstring)'"
+
+variables:
+  majorMinorVersion: 0.0
+  semanticVersion: 0
+  BuildConfiguration: "Release"
+
+name: $(majorMinorVersion).$(semanticVersion).$(rev:r)
+
+trigger: none
+
+stages:
+  - stage: Dev_Deployment
+    jobs:
+      - template: "templates/mlware-infer-app-model-discovery-deployment-helm-template.yaml"
+        parameters:
+          buildagent: "IAA-Buildagent"
+          serviceConnection: "sp-aks-dev-aixs-serviceconnection"
+          environment: "iaa - Development"
+          envshortcode: dev
+          namespace: ${{ parameters.namespace }}
+          helmchart: ${{ parameters.helmchart }}
+          helmvalues: dev-values.yaml
+          Command: ${{ parameters.Command }}
+          flags: ${{ parameters.flags }}
+
+  - stage: QA_Deployment
+    jobs:
+      - template: "templates/mlware-infer-app-model-discovery-deployment-helm-template.yaml"
+        parameters:
+          buildagent: "IAA-Buildagent"
+          serviceConnection: "sp-aks-qa-aixs-serviceconnection"
+          environment: "iaa - qa"
+          envshortcode: qa
+          namespace: ${{ parameters.namespace }}
+          helmchart: ${{ parameters.helmchart }}
+          helmvalues: qa-values.yaml
+          Command: ${{ parameters.Command }}
+          flags: ${{ parameters.flags }}
+
+  - stage: stage_Deployment
+    jobs:
+      - template: "templates/mlware-infer-app-model-discovery-deployment-helm-template.yaml"
+        parameters:
+          buildagent: "IAA-BuildAgent-Stage"
+          serviceConnection: "sp-aks-stage-aixs-serviceconnection"
+          environment: "iaa - stage"
+          envshortcode: stage
+          namespace: ${{ parameters.namespace }}
+          helmchart: ${{ parameters.helmchart }}
+          helmvalues: stage-values.yaml
+          Command: ${{ parameters.Command }}
+          flags: ${{ parameters.flags }}

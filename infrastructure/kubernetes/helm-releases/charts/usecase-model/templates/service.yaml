@@ -1,0 +1,38 @@
+{{- if .Values.supervisor.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "usecase-model.fullname" . }}
+  labels:
+    {{- include "usecase-model.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.usecaseServiceAnnotations  | nindent 8 }}
+spec:
+  type:  {{ .Values.usecaseServiceType }}
+  selector:
+    {{- include "usecase-model.selectorLabels" . | nindent 4 }}
+  ports:
+  - name: usecase-http
+    port: {{ .Values.usecaseServicePort }}
+    protocol: TCP
+  - name: supervisor-http
+    port: {{ .Values.supervisor.servicePort }}
+    protocol: TCP
+{{- else }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "usecase-model.fullname" . }}
+  labels:
+    {{- include "usecase-model.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.usecaseServiceAnnotations  | nindent 8 }}
+spec:
+  type:  {{ .Values.usecaseServiceType }}
+  selector:
+    {{- include "usecase-model.selectorLabels" . | nindent 4 }}
+  ports:
+  - name: usecase-http
+    port: {{ .Values.usecaseServicePort }}
+    protocol: TCP
+{{- end }}

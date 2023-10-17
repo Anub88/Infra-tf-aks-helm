@@ -1,0 +1,30 @@
+parameters:
+  - name: environment
+    displayName: environment
+    type: string
+    default: qa
+    values:
+      - dev
+      - qa
+      - stage
+  - name: behaveTags
+    displayName: Behave tags
+    type: string
+    default: runall
+    # 'runall' for executing all tests, or add behave tags as documented https://behave.readthedocs.io/en/stable/behave.html#tag-expression
+
+trigger:
+  branches:
+    include:
+      - "develop"
+  paths:
+    include:
+      - "application/inference/integration_tests/*"
+
+jobs:
+  - template: ../templates/integration-tests/integration-tests-inference-docker-job-template.yml
+    parameters:
+      bahaveTags: ${{ parameters.behaveTags }}
+      environment: ${{ parameters.environment }} # add environment value as 'dev', 'qa', 'prod'
+      ${{ if eq(parameters.environment, 'stage')}}:
+        buildAgent: IAA-BuildAgent-Stage

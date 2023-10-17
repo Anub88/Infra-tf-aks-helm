@@ -1,0 +1,129 @@
+parameters:
+  - name: bahaveTags # add behave tags as documented https://behave.readthedocs.io/en/stable/behave.html#tag-expression
+    type: string
+    displayName: "Behave tags for selective test execution"
+    default: "runall"
+  - name: environment # add environment value as 'dev', 'qa', 'prod'
+    type: string
+    displayName: "Environment against which integration tests are executed"
+    default: "dev"
+  - name: workDirRoot
+    default: "application/inference/integration_tests"
+  - name: workDirIntTestsFeatures
+    default: "application/inference/integration_tests"
+  - name: buildAgent
+    default: "IAA-BuildAgent"
+  - name: pathToDockerfile
+    default: "application/inference/integration_tests"
+  - name: nameOfContainer
+    default: "docker_integration_tests"
+  - name: nameOfContainerImage
+    default: "docker_integration_tests_image"
+  - name: nameOfContainerFolder
+    default: intgr_tests
+  - name: nameOfContainerFolderForReports
+    default: testReportsContainer
+  
+
+
+jobs:
+  - job: ExecuteIntegrationTests
+    pool:
+      name: HDP Image Analyzer Application Agent
+      demands:
+      - agent.name -equals ${{ parameters.buildAgent }}  
+
+    
+    steps:
+     
+      #
+      # Authenticate to Azure Artifacts
+      #
+      # This task populates the PIP_EXTRA_INDEX_URL environment variable
+      # https://github.com/microsoft/azure-pipelines-tasks/blob/7eab2bc96011927a971f2613ce6e85d93ee9b3f1/Tasks/PipAuthenticateV0/pipauthenticatemain.ts#L60
+      # in case PipAuthenticate@1, look here: https://developercommunity.visualstudio.com/t/how-to-pass-pip-extra-index-url-variable-from-devo/812836
+      - task: PipAuthenticate@0
+        displayName: "Authenticate with mlware Python feed"
+        inputs:
+          artifactFeeds: 'GEN_Health_Data_Platform/mlware-python-feed'
+      
+      #
+      # Check if a container already exists and remove it if so
+      #
+      - script: |
+          if [ $( docker ps -a -f name=${{ parameters.nameOfContainer }} | wc -l ) -eq 2 ]; then
+            docker rm ${{ parameters.nameOfContainer }}
+            echo 'Container with name ${{ parameters.nameOfContainer }} was removed.'
+          fi 
+        displayName: "Check if a container already exists and remove it if so"
+        workingDirectory: $(System.DefaultWorkingDirectory)/${{ parameters.workDirIntTestsFeatures }}
+      
+      #
+      # Build a docker container to execute behave integration tests
+      #
+      - script: |
+          docker build -t ${{ parameters.nameOfContainerImage }} . \
+          --build-arg 'INDEX_URL=$(PIP_EXTRA_INDEX_URL)' \
+          --build-arg 'BehaveTags=${{ parameters.bahaveTags }}' \
+          --build-arg 'Environment=${{ parameters.environment }}' \
+          --build-arg 'ContFolder=${{ parameters.nameOfContainerFolder }}' \
+          --build-arg 'ContFolderReports=${{ parameters.nameOfContainerFolderForReports }}' \
+        displayName: "Build a docker container to execute behave integration tests"
+        workingDirectory: $(System.DefaultWorkingDirectory)/${{ parameters.workDirIntTestsFeatures }}
+        env: 
+              ENV_STATE: ${{ parameters.environment }}
+      
+      #
+      # Create a folder on the host to be mount in the container for the test reports
+      #
+      - script: |
+           mkdir testReportsHostFolder
+        displayName: "Create a folder on the host to be mount in the container for the test reports"
+        workingDirectory: $(System.DefaultWorkingDirectory)/${{ parameters.workDirIntTestsFeatures }}
+
+      #
+      # Run a docker container to execute behave integration tests
+      #
+      # Note: --mount ... should be before --name ...
+      #
+      # In case the run of this pipeline against stage causes an issue:
+      # Error: Got permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock:....
+      # Here is a manual solution: 1) connect to the vm-cicd-stage-buildagent vie ssh (see Azure Portal)
+      # 2) test on the vm with a simple command: docker version => error will apear
+      # 3) execute: sudo chmod 666 /var/run/docker.sock
+      #
+      - script: |
+          docker run -v /var/run/docker.sock:/var/run/docker.sock --mount src="$(pwd)/testReportsHostFolder",target=/${{ parameters.nameOfContainerFolderForReports }},type=bind \
+          --name ${{ parameters.nameOfContainer }} ${{ parameters.nameOfContainerImage }}
+        displayName: "Run a docker container to execute behave integration tests"
+        workingDirectory: $(System.DefaultWorkingDirectory)/${{ parameters.workDirIntTestsFeatures }}
+        failOnStderr: false
+      
+           
+      #
+      # Stop and remove the docker container
+      #
+      - script: |
+          docker stop ${{ parameters.nameOfContainer }}
+          docker rm ${{ parameters.nameOfContainer }}
+        displayName: "Stop and remove the docker container"
+
+      
+      #
+      # Publish test results
+      #
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFiles: '**/TESTS-*.xml'
+          testRunTitle: 'AIXS Integration Test Cases'
+
+  - job: ExecuteBlackDuckScan
+    pool:
+      # Blackduck is only executable on this VM at the moment
+      vmImage: 'ubuntu-latest'
+    steps:
+      - template: ../code-quality/code-quality-blackduck-template.yml
+        parameters:
+          workDir: $(System.DefaultWorkingDirectory)/${{ parameters.workDirRoot }}
+    dependsOn: ExecuteIntegrationTests

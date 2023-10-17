@@ -1,0 +1,78 @@
+parameters:
+  - name: repository
+    type: string
+    displayName: "The repository from which to build the model"
+    default: "iaa-shared-odx"
+
+  - name: metadatayml
+    type: string
+    displayName: "metadata yaml file name"
+    default: "inference_metadata_bscanofinterest.yml"
+
+  - name: modelregistry
+    type: string
+    displayName: "model registry name"
+    default: "alpine"
+
+  - name: modeltag
+    type: string
+    displayName: "model tag (version)"
+    default: "latest"
+
+  - name: buildagent
+    type: string
+    displayName: "Build Agent name"
+    default: "IAA-Buildagent"
+
+  - name: buildid
+    type: string
+    displayName: "Build number"
+
+jobs:
+  - deployment: metadata_flatten
+    pool:
+      name: HDP Image Analyzer Application Agent
+      demands:
+        - agent.name -equals ${{ parameters.buildagent }}
+    environment:
+      "iaa - Development"
+      #creating the flatten file from metadata yaml
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+            - checkout: iaa-shared-odx
+
+            - task: CmdLine@2
+              inputs:
+                script: |
+                  cd ${{ parameters.repository }}/
+                  python3 flatten.py ${{parameters.metadatayml}}
+                  echo $(<flatten.txt)
+
+            #install docker
+            - task: DockerInstaller@0
+              inputs:
+                dockerVersion: "17.09.0-ce"
+
+            #algo acr Login using Service principal
+            - task: Docker@2
+              displayName: Login to ACR
+              inputs:
+                containerRegistry: "acr-aixs-dev-algo-serviceconnection"
+                command: "login"
+
+            #image labeling with flatten metadata
+            - task: CmdLine@2
+              inputs:
+                script: |
+                  cd ${{ parameters.repository }}/
+                  ls -l
+                  docker build -t acrpubmlwscicdweus.azurecr.io/${{parameters.modelregistry}}:${{parameters.modeltag}}_${{parameters.buildid}} - << EOF
+                  FROM acrpubmlwscicdweus.azurecr.io/${{parameters.modelregistry}}:${{parameters.modeltag}}
+                  $(<flatten.txt)
+                  EOF
+                  docker image push acrpubmlwscicdweus.azurecr.io/${{parameters.modelregistry}}:${{parameters.modeltag}}_${{parameters.buildid}}
+                  docker images
+                  docker image inspect acrpubmlwscicdweus.azurecr.io/${{parameters.modelregistry}}:${{parameters.modeltag}}_${{parameters.buildid}}

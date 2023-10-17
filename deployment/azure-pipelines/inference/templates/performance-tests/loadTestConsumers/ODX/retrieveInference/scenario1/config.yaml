@@ -1,0 +1,8 @@
+testName: getapi_scenario_1
+testPlan: testPlan.jmx
+description: test the get request - 100 threads and 30s ramp up
+engineInstances: 40
+splitAllCSVs: True
+configurationFiles:
+- ../ExamKey_TenantId.csv
+failureCriteria: []

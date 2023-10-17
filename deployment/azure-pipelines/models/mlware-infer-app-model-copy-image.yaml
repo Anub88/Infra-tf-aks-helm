@@ -1,0 +1,107 @@
+trigger: none
+
+parameters:
+  - name: imageName
+    type: string
+    displayName: "Image name to copy over. Also referred to as 'registry' sometimes"
+    default: "bsi"
+  - name: imageTag
+    type: string
+    displayName: "Tag of the image to copy"
+    default: "1a9f044"
+  - name: operatingSystem
+    type: string
+    displayName: "The Operating System of the Docker image."
+    default: "linux"
+    values:
+      - "linux"
+      - "windows"
+
+stages:
+  - stage: scan_image_stage
+    displayName: Scan Image for vulnerabilities
+    jobs:
+      - job: scan_image
+        pool:
+          name: HDP Image Analyzer Application Agent
+          demands:
+            - agent.name -equals IAA-Buildagent
+        steps:
+          - task: Docker@2
+            displayName: Login to ACR
+            inputs:
+              containerRegistry: acr-aixs-pub-dev-serviceconnection
+              command: "login"
+          # TODO scan windows images from the windows build agent
+          - task: AzureCLI@2
+            displayName: Run Trivy scan
+            inputs:
+              azureSubscription: "sp-iaa-tf-serviceconnection"
+              scriptType: "bash"
+              scriptLocation: scriptPath
+              scriptPath: "deployment/azure-pipelines/models/scripts/scan-docker-image-${{ parameters.operatingSystem }}.sh"
+              arguments: "-n ${{ parameters.imageName }} -t ${{ parameters.imageTag }}"
+  - stage: verify_docker_image_signature
+    displayName: "Verify Docker Image is trusted"
+    jobs:
+      - job: verify_image
+        pool:
+          name: HDP Image Analyzer Application Agent
+          demands:
+            - agent.name -equals IAA-Buildagent
+        steps:
+          - task: Docker@2
+            displayName: Login to ACR
+            inputs:
+              containerRegistry: acr-aixs-pub-dev-serviceconnection
+              command: "login"
+          - task: AzureCLI@2
+            displayName: Verify Docker Image Signature
+            inputs:
+              azureSubscription: "sp-iaa-tf-serviceconnection"
+              scriptType: "bash"
+              scriptLocation: scriptPath
+              scriptPath: "deployment/azure-pipelines/models/scripts/verify-docker-image.sh"
+              arguments: "-n ${{ parameters.imageName }} -t ${{ parameters.imageTag }}"
+
+  - stage: copy_to_dev
+    displayName: "Copy ACR image from public to Dev private ACR"
+    dependsOn: verify_docker_image_signature
+    jobs:
+      - template: "templates/mlware-infer-app-model-discovery-copy-docker-template.yaml"
+        parameters:
+          buildAgent: IAA-Buildagent
+          publicAcrRepository: acrpubmlwscicdweus
+          privateAcrRepository: acrmlwsdevweus
+          dockerServiceConnection: "acr-aixs-dev-serviceconnection"
+          imageName: ${{ parameters.imageName }}
+          imageTag: ${{ parameters.imageTag }}
+          azureDevOpsEnvironment: "iaa - Development"
+
+  - stage: copy_to_qa
+    displayName: "Copy ACR image from public to QA private ACR"
+    dependsOn: copy_to_dev
+    jobs:
+      - template: "templates/mlware-infer-app-model-discovery-copy-docker-template.yaml"
+        parameters:
+          buildAgent: IAA-Buildagent
+          publicAcrRepository: acrpubmlwscicdweus
+          privateAcrRepository: acrmlwsqaweus
+          dockerServiceConnection: "acr-aixs-qa-serviceconnection"
+          imageName: ${{ parameters.imageName }}
+          imageTag: ${{ parameters.imageTag }}
+          azureDevOpsEnvironment: "iaa - QA"
+
+  - stage: copy_to_stage
+    displayName: "Copy ACR image from public to Stage private ACR"
+    dependsOn: copy_to_qa
+    jobs:
+      - template: "templates/mlware-infer-app-model-discovery-copy-docker-template.yaml"
+        parameters:
+          buildAgent: IAA-Buildagent-Stage
+          publicAcrRepository: acrpubmlwscicdweus
+          privateAcrRepository: acrmlwsstageweus
+          dockerServiceConnection: "acr-aixs-stage-serviceconnection"
+          imageName: ${{ parameters.imageName }}
+          imageTag: ${{ parameters.imageTag }}
+          azureDevOpsEnvironment: "iaa - stage"

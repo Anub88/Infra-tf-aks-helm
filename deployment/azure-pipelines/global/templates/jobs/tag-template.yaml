@@ -1,0 +1,34 @@
+# Job template for tagging after deployment of an infrastructure release.
+parameters:
+  - name: tagString
+    type: string
+    displayName: "String to tag the commit with"
+  - name: dependson
+    type: string
+    displayName: "Job Dependencies."
+    default: ""
+  - name: buildAgentName
+    type: string
+    displayName: "Build Agent name"
+    default: IAA-BuildAgent
+
+jobs:
+  - job: tag_commit
+    pool:
+      ${{ if eq(parameters.buildAgentName, 'ubuntu') }}:
+        vmImage: "ubuntu-latest"
+      ${{ else }}:
+        name: HDP Image Analyzer Application Agent
+        demands:
+          - agent.name -equals ${{ parameters.buildAgentName }}
+    displayName: "tag commit."
+    dependsOn: ${{ parameters.dependson }}
+    steps:
+      - checkout: self
+        persistCredentials: true
+      - template: "../steps/timestamp-template.yaml"
+      - script: |
+          git tag "${{ parameters.tagString }}"
+          git push --tags
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: "Tag commit from pipeline."

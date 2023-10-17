@@ -1,0 +1,21 @@
+# Plan and Deploy to dev environment.
+# Use for testing purposes on feature branch.
+
+variables:
+  - template: "vars/dev-vars.yaml"
+
+name: $(Date:yyyyMMdd)$(Rev:.r)-deployment-dev
+
+trigger: none
+
+stages:
+  - template: "templates/stages/plan-states-template.yaml"
+    parameters:
+      envShortCode: "dev"
+      validate: true
+  - template: "templates/stages/release-states-template.yaml"
+    parameters:
+      envShortCode: "dev"
+  - template: "templates/stages/tag-release-template.yaml"
+    parameters:
+      envShortCode: "dev"

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: core-hdp-observer
+description: Helm Chart for AIXS hdp observer service.
+type: application
+version: 0.1.0

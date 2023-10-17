@@ -1,0 +1,61 @@
+
+name: $(Date:yyyyMMdd)$(Rev:.r)-customconfig-deployment
+
+trigger: none
+
+stages:  
+   - template: "templates/stages/plan-customconfig-infra-template.yaml"
+     parameters:
+      envShortCode: "dev"
+      validate: true
+   - template: "templates/stages/release-customconfig-infra-template.yaml"
+     parameters:
+      envShortCode: "dev"
+  # - stage: tag_release_dev
+  #   displayName: "Tag dev release."
+  #   dependsOn:
+  #   - deploy_dev_customconfig
+  #   jobs:
+  #     - template: "templates/jobs/tag-template.yaml"
+  #       parameters:
+  #         tagString: "dev/$(currentTimeStamp)_$(Build.SourceBranchName)"
+ 
+   - template: "templates/stages/plan-customconfig-infra-template.yaml"
+     parameters:
+      envShortCode: "qa"
+      validate: true
+   - template: "templates/stages/release-customconfig-infra-template.yaml"
+     parameters:
+      envShortCode: "qa"
+  # - stage: tag_release_qa
+  #   displayName: "Tag QA release."
+  #   dependsOn:
+  #   - deploy_qa_customconfig
+  #   jobs:
+  #     - template: "templates/jobs/tag-template.yaml"
+  #       parameters:
+  #         tagString: "qa/$(currentTimeStamp)_$(Build.SourceBranchName)"
+
+   - template: "templates/stages/plan-customconfig-infra-template.yaml"
+     parameters:
+      envShortCode: "stage"
+      validate: true
+   - template: "templates/stages/release-customconfig-infra-template.yaml"
+     parameters:
+      envShortCode: "stage"
+  # - stage: tag_release_stage
+  #   displayName: "Tag stage release."
+  #   dependsOn:
+  #   - deploy_stage_customconfig
+  #   jobs:
+  #     - template: "templates/jobs/tag-template.yaml"
+  #       parameters:
+  #         tagString: "stage/$(currentTimeStamp)_$(Build.SourceBranchName)"   
+
+   - template: "templates/stages/plan-customconfig-infra-template.yaml"
+     parameters:
+      envShortCode: "pen"
+      validate: true
+   - template: "templates/stages/release-customconfig-infra-template.yaml"
+     parameters:
+      envShortCode: "pen"

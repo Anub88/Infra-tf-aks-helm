@@ -1,0 +1,48 @@
+parameters:
+  - name: buildAgent
+    type: string
+    displayName: "Build Agent name"
+    default: "IAA-Buildagent"
+  - name: publicAcrRepository
+    type: string
+    displayName: "The public acr repository to copy from"
+    default: "acrpubmlwscicdweus"
+  - name: privateAcrRepository
+    type: string
+    displayName: "The private acr repository to copy to"
+    default: "acrmlwsdevweus"
+  - name: dockerServiceConnection
+    type: string
+    displayName: "The service connection to use for accessing the ACR"
+    default: acr-aixs-dev-serviceconnection
+  - name: imageName
+    type: string
+    displayName: "Image name to copy over. Also referred to as 'registry' sometimes"
+    default: "bsi"
+  - name: imageTag
+    type: string
+    displayName: "Tag of the image to copy"
+    default: "1a9f044"
+  - name: azureDevOpsEnvironment
+    type: string
+    displayName: "DevOps Environment "
+
+jobs:
+  - deployment: copy_to_private_acr
+    pool:
+      name: HDP Image Analyzer Application Agent
+      demands:
+        - agent.name -equals ${{ parameters.buildAgent }}
+    displayName: Copy to private ACR - ${{ parameters.azureDevOpsEnvironment }}
+    environment: ${{ parameters.azureDevOpsEnvironment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - task: Docker@2
+              displayName: Login to ACR
+              inputs:
+                containerRegistry: ${{ parameters.dockerServiceConnection }}
+                command: "login"
+            - script: |
+                az acr import --name ${{ parameters.privateAcrRepository }} --source ${{ parameters.publicAcrRepository }}.azurecr.io/${{ parameters.imageName }}:${{ parameters.imageTag }}

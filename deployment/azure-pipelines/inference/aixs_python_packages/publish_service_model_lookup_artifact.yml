@@ -1,0 +1,12 @@
+trigger:
+  branches:
+    include:
+      - 'develop'
+  paths:
+    include:
+      - 'application/inference/service_model_lookup/*'
+
+jobs:
+    - template: ../templates/artifacts/python-twine-publish-python-repo-template.yml
+      parameters:
+        artifactname: 'service_model_lookup'

@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "odx.fullname" . }}
+  labels:
+    {{- include "odx.labels" . | nindent 4 }}
+  annotations:
+    ## following will be ignored since this is a template file and actual values will be forwarded from chart/values file
+    ## added required values in dev-values.yaml, qa-values.yaml and stage-values.yaml
+    checkov.io/skip1: CKV_K8S_10=Ignoring this as CPU requests under resources will be added from chart values
+    checkov.io/skip2: CKV_K8S_11=Ignoring this as CPU limits under resources will be added from chart values
+    checkov.io/skip3: CKV_K8S_12=Ignoring this as Memory request under resources will be added from chart values
+    checkov.io/skip4: CKV_K8S_13=Ignoring this as Memory request under resources will be added from chart values
+    checkov.io/skip5: CKV_K8S_14=Ignoring this as Image tag will be added from chart values
+    checkov.io/skip6: CKV_K8S_15=Ignoring this as Image pull policy will be added from chart values
+    checkov.io/skip7: CKV_K8S_20=Ignoring this as allowPrivilegeEscalation will be added from chart values
+    checkov.io/skip8: CKV_K8S_21=Ignoring this as namespace will be added from chart values
+    checkov.io/skip9: CKV_K8S_22=Ignoring this as filesystem type will be added from chart values
+    checkov.io/skip10: CKV_K8S_22=Ignoring this as admission of root containers will be added from chart values
+    checkov.io/skip11: CKV_K8S_28=Ignoring this  admission of containers with the NET_RAW capability will be added from chart values
+    checkov.io/skip12: CKV_K8S_30
+    checkov.io/skip13: CKV_K8S_31
+    checkov.io/skip14: CKV_K8S_37
+    checkov.io/skip15: CKV_K8S_38
+    checkov.io/skip16: CKV_K8S_40
+    checkov.io/skip17: CKV_K8S_43
+    checkov.io/skip18: CKV_K8S_8
+    checkov.io/skip19: CKV_K8S_9
+    checkov.io/skip20: CKV_K8S_6
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "odx.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "odx.selectorLabels" . | nindent 8 }}
+        app: {{ include "odx.fullname" . }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "odx.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          {{- range .Values.env }}
+          - name: {{ .name | quote }}
+            value: {{ .value | quote }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

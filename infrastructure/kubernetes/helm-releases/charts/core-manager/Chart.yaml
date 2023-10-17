@@ -1,0 +1,5 @@
+apiVersion: v2
+name: core-manager
+description: Helm Chart for AIXS core-manager service.
+type: application
+version: 0.1.0

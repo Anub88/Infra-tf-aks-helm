@@ -1,0 +1,20 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: cosmo-state-store 
+  namespace: {{ .Values.archive.namespace }}
+spec:
+  type: {{ .Values.archive.type}}
+  version: {{ .Values.archive.version}}
+  initTimeout: {{ .Values.archive.initTimeout}}
+  metadata:
+    {{- range .Values.archive.metadata }}
+    - name: {{ .name | quote }}
+      value: {{ .value | quote }}
+    {{- end }}
+    - name: collectionName
+      value:  {{ .Values.mangodb.collectionName}}
+    - name: password
+      secretKeyRef:
+        name: cosmospassword
+        key: cosmospassword

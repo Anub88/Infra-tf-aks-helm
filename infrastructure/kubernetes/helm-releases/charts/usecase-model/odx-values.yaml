@@ -1,0 +1,88 @@
+# Default values for usecase-model.
+fullnameOverride: 
+usecaseName: 
+ 
+## Usecase
+# Deployment
+registry:
+replicaCount:
+usecaseRepository: bsi
+usecaseTag: 
+sizeLimit: 128Mi
+
+podAnnotations: {
+    dapr.io/enabled: "true",
+    dapr.io/app-id: "odx",
+    dapr.io/app-port: "80",
+    seccomp.security.alpha.kubernetes.io/pod: "docker/default",
+    helm.sh/hook-delete-policy: "before-hook-creation,hook-succeeded",
+    helm.sh/hook: "post-install,post-upgrade"
+  }
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10014
+  capabilities:
+    drop:
+      - NET_RAW
+      - ALL
+
+# NodeSelector
+agentpool: wincpu
+tolerations: []
+affinity: {}
+
+# Service
+usecaseServicePort: 80
+usecaseServiceType: "LoadBalancer"
+usecaseServiceAnnotations: {
+   service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+}
+
+# Environment (Injected by TF)
+usecaseEnviromentVariables:
+  ASPNETCORE_URLS: http://+:80
+  PubSubName: pubsubazuresb
+  TableConnectionString: 
+  TableName: tblsgmlifdevweus
+  NotityEndPoint: https://reviewclient.westus.cloudapp.azure.com/api/analysis/oct/notifybsi
+  TopicName: bscan
+
+# Usecase-Resources
+usecaseResources:
+  limits:
+    memory: 2000Mi
+    cpu: 2
+  requests:
+    memory: 1000Mi
+    cpu: 1
+
+## Supervisor-Sidecar
+supervisor:
+  enabled: false
+  servicePort: 
+  tag: 
+
+# Supervisor-Environment
+  enviromentVariables:
+    ENV_STATE: 
+
+# Supervisor-Resources
+  resources:
+    limits:
+      memory: 600Mi
+      cpu: 1
+    requests:
+      memory: 300Mi
+      cpu: 500m
+
+## DAPR Pub Sub - Service Bus 
+dapr:
+  enabled: true
+  metadata:
+    connectionString: 
+    lockDurationInSec: 300
+    maxConcurrentHandlers: 1
+    maxActiveMessages: 1

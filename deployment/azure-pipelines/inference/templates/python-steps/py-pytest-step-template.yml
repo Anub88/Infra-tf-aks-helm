@@ -1,0 +1,43 @@
+# NOTES
+#   Tasks this template depends on:
+#     - UsePythonVersion@0
+#     - PipAuthenticate@0
+#   Custom build agent does work
+
+parameters:
+  - name: dir
+    type: string
+    displayName: "pytest root directory"
+
+steps:
+      #
+      # Install test/lint/coverage dependencies
+      #
+      - script: |
+            python -m pip install --upgrade pip pytest pytest-cov pylint
+            python -m pip install -U --upgrade-strategy=eager -r requirements.txt
+        workingDirectory: ${{parameters.dir}}
+        displayName: 'Install python testing dependencies'
+      # 
+      # Run tests and generate code coverage report 
+      #
+      - bash: |
+          python -m pytest --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=xml
+        displayName: 'Pytest'
+        workingDirectory: ${{parameters.dir}}
+        failOnStderr: false
+      #
+      # Publish test results
+      #
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFiles: '**/test-*.xml'
+          testRunTitle: 'AIXS Unit Test Cases'
+      #
+      # Publish coverage results
+      #
+      - task: PublishCodeCoverageResults@1
+        inputs:
+          codeCoverageTool: Cobertura
+          summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'

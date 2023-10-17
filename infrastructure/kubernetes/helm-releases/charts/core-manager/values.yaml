@@ -1,0 +1,29 @@
+# Default values for core-manager.
+
+# Deployment
+registry:
+replicaCount: 1
+
+# NodeSelector
+agentpool: ""
+
+# Service
+servicePort: 8000
+
+# DAPR 
+port: 8000
+
+resources:
+  limits:
+    memory: 600Mi
+    cpu: 1
+  requests:
+    memory: 300Mi
+    cpu: 500m
+
+# Environment Variables - Secrets (Injected by TF)
+env: 
+  ENV_STATE: 
+
+envSecrets:
+  NO_SECRET: "PLACEHOLDER"

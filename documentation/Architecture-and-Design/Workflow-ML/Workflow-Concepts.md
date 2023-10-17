@@ -1,0 +1,2 @@
+## Overview
+The concept of a workflow (engine) serves the purpose of an orchestration component (as opposed to a choreography approach). The workflow engine follows the principle of providing re-usable and generic features used accros multiple AI applications.

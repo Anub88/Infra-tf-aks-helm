@@ -1,0 +1,17 @@
+adal
+behave
+pydantic
+requests
+pybreaker
+
+# Azure
+azure-identity
+
+# MLware
+mlware==1.1.24
+mlware-data-access
+mlware-data-access-client==1.1.1
+mlware-keyvault-client>=1.0.8
+mlware-historical-data-retrieval
+mlware-model-lookup==1.0.3
+mlware-client-acr-docker==2.0.8

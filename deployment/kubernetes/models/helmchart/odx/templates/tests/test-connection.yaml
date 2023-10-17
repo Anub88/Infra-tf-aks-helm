@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "odx.fullname" . }}-test-connection"
+  labels:
+    {{- include "odx.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    ## following will be ignored since this is a template file and actual values will be forwarded from chart/values file
+    checkov.io/skip1: CKV_K8S_10=Ignoring this as CPU requests under resources will be added from chart values
+    checkov.io/skip2: CKV_K8S_11=Ignoring this as CPU limits under resources will be added from chart values
+    checkov.io/skip3: CKV_K8S_12=Ignoring this as Memory request under resources will be added from chart values
+    checkov.io/skip4: CKV_K8S_13=Ignoring this as Memory request under resources will be added from chart values
+    checkov.io/skip5: CKV_K8S_14=Ignoring this as Image tag will be added from chart values
+    checkov.io/skip6: CKV_K8S_15=Ignoring this as Image pull policy will be added from chart values
+    checkov.io/skip7: CKV_K8S_20=Ignoring this as allowPrivilegeEscalation will be added from chart values
+    checkov.io/skip8: CKV_K8S_21=Ignoring this as namespace will be added from chart values
+    checkov.io/skip9: CKV_K8S_22=Ignoring this as filesystem type will be added from chart values
+    checkov.io/skip10: CKV_K8S_22=Ignoring this as admission of root containers will be added from chart values
+    checkov.io/skip11: CKV_K8S_28=Ignoring this  admission of containers with the NET_RAW capability will be added from chart values
+    checkov.io/skip12: CKV_K8S_30
+    checkov.io/skip13: CKV_K8S_31
+    checkov.io/skip14: CKV_K8S_37
+    checkov.io/skip15: CKV_K8S_38
+    checkov.io/skip16: CKV_K8S_40
+    checkov.io/skip17: CKV_K8S_43
+    checkov.io/skip18: CKV_K8S_8
+    checkov.io/skip19: CKV_K8S_9
+    checkov.io/skip20: CKV_K8S_6
+
+
+
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "odx.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never

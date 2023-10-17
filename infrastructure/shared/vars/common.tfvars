@@ -1,0 +1,2 @@
+resource_group_location = "West US 2"
+dns_names               = ["privatelink.azure-api.net", "privatelink.developer.azure-api.net", "privatelink.azurecr.io", "privatelink.azurewebsites.net", "privatelink.documents.azure.com", "privatelink.vaultcore.azure.net", "privatelink.servicebus.windows.net", "privatelink.eventgrid.azure.net", "privatelink.table.core.windows.net", "privatelink.redis.cache.windows.net", "privatelink.blob.core.windows.net","privatelink.mongo.cosmos.azure.com"]

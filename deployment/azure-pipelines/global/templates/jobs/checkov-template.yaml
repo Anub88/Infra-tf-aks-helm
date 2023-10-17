@@ -1,0 +1,76 @@
+# Job template for checkov checks.
+# NOTES
+#   Tasks this template depends on:
+#     - UsePythonVersion@0
+#   Avg. time: 1m10s
+
+parameters:
+  - name: dir
+    type: string
+    displayName: "dir to run checkov against"
+  - name: failOnSecret
+    type: boolean
+    default: true
+    displayName: "fail if secrets are found"
+
+jobs:
+  - job: checkov
+    displayName: Run checkov
+    continueOnError: false
+    pool:
+      vmImage: "ubuntu-latest"
+    steps:
+      #
+      # Correct python environment
+      #
+      - task: UsePythonVersion@0
+        displayName: "Use Python 3.9"
+        inputs:
+          versionSpec: 3.9
+          addToPath: true
+      #
+      # Install dependencies
+      #
+      - script: |
+          python -m pip install --upgrade pip
+      - bash: |
+          python -m pip install -U checkov==2.2.330
+        workingDirectory: $(System.DefaultWorkingDirectory)
+        displayName: "Install checkov"
+      #
+      # Run checkov without failing
+      #
+      - bash: |
+          checkov -d /home/vsts/work/1/s/infrastructure/mlware  --skip-check CKV_AZURE_112,CKV_AZURE_117,CKV_AZURE_197,,CKV_AZURE_168,CKV_AZURE_170,CKV_AZURE_139,CKV_AZURE_165,CKV_AZURE_141 --output junitxml > checkov-report.xml
+        displayName: "Checkov"
+        workingDirectory: "${{ parameters.dir }}"
+        failOnStderr: false
+        continueOnError: true
+      #
+      # Publish checkov results
+      #
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFormat: "JUnit"
+          testResultsFiles: "**/*checkov-report.xml"
+          searchFolder: "${{ parameters.dir }}"
+          mergeTestResults: false
+          testRuntitle: Checkov Terraform Tests
+          failTaskOnFailedTests: false
+          publishRunAttachements: true
+      #
+      # Optionally stop if secrets have been found
+      #
+      - ${{ if eq(parameters.failOnSecret, true) }}:
+          - bash: |
+              if checkov -d /home/vsts/work/1/s/infrastructure/mlware  --skip-check CKV_AZURE_112,CKV_AZURE_117,CKV_AZURE_197,,CKV_AZURE_168,CKV_AZURE_170,CKV_AZURE_139,CKV_AZURE_165,CKV_AZURE_141 | grep CKV_SECRET_; then
+                echo "##vso[task.logissue type=error] ALAAARM!!! ALAAAARM !!!"
+                echo "##vso[task.logissue type=error] CHECKOV FOUND SECRETS, ABORTING PIPELINE"
+                echo "##vso[task.logissue type=error] "
+                exit 1
+              else
+                echo "##[command]No secrets found, continue"
+              fi
+            displayName: "Checkov fail if secrets"
+            workingDirectory: "${{ parameters.dir }}"

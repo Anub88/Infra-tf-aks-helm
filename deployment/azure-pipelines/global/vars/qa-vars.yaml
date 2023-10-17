@@ -1,0 +1,25 @@
+# Only mlware and apimgmt can be deployed to QA.
+
+variables:
+  - name: envShortCode
+    value: qa
+  - name: subscriptionShortCode
+    value: dev
+    # State files.
+  - name: stateFileKubernetes
+    value: "st-tf-kubernetes-qa-weus.tfstate"
+  - name: stateFileMlware
+    value: "st-tf-qa-weus.tfstate"
+  - name: stateFileApim
+    value: "st-tf-apim-qa-weus.tfstate"
+  - name: stateFileappregistrations
+    value: "st-tf-appregistrations-qa-weus.tfstate"
+  - name: stateFilecustomconfig
+    value: "st-tf-customconfig-qa-weus.tfstate"
+  - name: azureDevOpsEnvironment
+    value: "iaa - QA"
+    # Build agent pool names.
+  - name: managedBuildAgentName
+    value: ubuntu
+  - name: selfBuildAgentName
+    value: IAA-BuildAgent

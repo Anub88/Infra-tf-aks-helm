@@ -1,0 +1,48 @@
+pool:
+  name: HDP Image Analyzer Application Agent
+  demands:
+    - agent.name -equals IAA-BuildAgent
+
+trigger: none
+
+parameters:
+  - name: envShortCode
+    type: string
+    displayName: "Environment of the job (short code format: dev/qa/stage)"
+    values:
+      - dev
+      - qa
+      - stage
+      - prod
+
+variables:
+  - name: regionShortCode
+    value: weus
+  - name: region
+    value: westus
+
+stages:
+  - stage: remove_resources
+    jobs:
+      - job: run_remove_script
+        steps:
+          - checkout: self
+          - task: TerraformTaskV2@2
+            displayName: Terraform Init
+            inputs:
+              provider: "azurerm"
+              command: "init"
+              workingDirectory: "./infrastructure/mlware"
+              backendServiceArm: "sp-iaa-${{ parameters.envShortCode }}-tf-serviceconnection"
+              backendAzureRmResourceGroupName: "rg-backend-${{ parameters.envShortCode }}-weus-infra"
+              ${{ if eq(parameters.envShortCode, 'dev') }}:
+                backendAzureRmStorageAccountName: "stbackendtfdata"
+              ${{ else}}:
+                backendAzureRmStorageAccountName: "stbackendtfdata${{ parameters.envShortCode }}"
+              backendAzureRmContainerName: "tf-state-container"
+              backendAzureRmKey: "st-tf-${{ parameters.envShortCode }}-weus.tfstate"
+          - task: Bash@3
+            displayName: Azure CLI
+            inputs:
+              filePath: "./deployment/azure-pipelines/global/scripts/import-mlware-qa-resources.sh"
+              workingDirectory: "./infrastructure/mlware"

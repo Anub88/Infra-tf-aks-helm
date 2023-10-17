@@ -1,0 +1,32 @@
+# Default values for usecase-configuration.
+fullnameOverride:
+usecaseName: 
+
+# Deployment
+registry: 
+replicaCount: 1
+
+# NodeSelector
+agentpool: ""
+tag:
+
+# Service
+servicePort: 8000
+
+# DAPR 
+port: 8000
+
+resources:
+  limits:
+    memory: 600Mi
+    cpu: 1
+  requests:
+    memory: 300Mi
+    cpu: 500m
+
+# Environment Variables - Secrets
+env: 
+  ENV_STATE: 
+
+envSecrets:
+  NO_SECRET: "PLACEHOLDER"

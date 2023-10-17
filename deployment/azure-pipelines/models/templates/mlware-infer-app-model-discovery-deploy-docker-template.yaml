@@ -1,0 +1,71 @@
+parameters:
+  - name: envShortCode
+    type: string
+    displayName: "Environment of the job (short code format: dev/qa/stage)"
+    default: "dev"
+  - name: azureDevOpsEnvironment
+    type: string
+    displayName: "DevOps Environment "
+  - name: serviceConnection
+    type: string
+    displayName: "Service connection"
+  - name: namespace
+    type: string
+    displayName: "Namespace for the model"
+  - name: kubernetesDeploymentFile
+    type: string
+    displayName: "tThe deployment file where the configuration of the kubernetes deployment reside"
+
+jobs:
+  - deployment: ${{ parameters.envShortCode }}_deployment
+    displayName: Deploy Docker Image - ${{ parameters.azureDevOpsEnvironment }}
+    pool:
+      name: HDP Image Analyzer Application Agent
+      demands: 
+        - agent.name -equals IAA-Buildagent
+    environment: ${{ parameters.azureDevOpsEnvironment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+            - task: DownloadBuildArtifacts@1
+              inputs:
+                buildType: 'current'
+                downloadType: 'specific'
+                downloadPath: '$(System.ArtifactsDirectory)'
+                checkDownloadedFiles: true
+                ArtifactName: 'drop'
+            - task: KubectlInstaller@0
+              inputs:
+                kubectlVersion: 'latest'
+            - task: AzureCLI@2
+              displayName: set kubernetes namespace
+              inputs:
+                azureSubscription: '${{ parameters.serviceConnection }}'
+                scriptType: 'bash'
+                scriptLocation: 'inlineScript'
+                inlineScript: |
+                  az --version
+                  az account show
+                  az aks get-credentials --resource-group rg-mlw-${{ parameters.envShortCode }}-weus --name aks-mlif-${{ parameters.envShortCode }}-weus-01
+                  kubectl get namespace | grep -q "^${{ parameters.namespace }}" || kubectl create namespace ${{ parameters.namespace }}
+                  kubectl get namespaces
+                addSpnToEnvironment: true
+                
+            - task: CmdLine@2
+              displayName: deploy docker image to kubernetes
+              inputs:
+                script: |
+                  ls -l
+                  cd deployment/kubernetes/models/
+                  kubectl apply -f ${{ parameters.kubernetesDeploymentFile }} -n ${{ parameters.namespace }}
+                  kubectl get all -n ${{ parameters.namespace }}
+
+            - task: CmdLine@2
+              displayName: unset Kube context
+              inputs:
+                script: |
+                        kubectl config unset users.aks-mlif-${{ parameters.envShortCode }}-weus-01
+                        kubectl config unset contexts.aks-mlif-${{ parameters.envShortCode }}-weus-01
+                        kubectl config unset clusters.aks-mlif-${{ parameters.envShortCode }}-weus-01

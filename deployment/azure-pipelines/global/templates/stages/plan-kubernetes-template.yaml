@@ -1,0 +1,36 @@
+# Stage template runs plan for kubernetes state and is parameterized by environment.
+parameters:
+  - name: envShortCode
+    type: string
+    displayName: "Environment of the job (short code format: dev/qa/stage/prod)"
+    default: "dev"
+    values:
+      - dev
+      - qa
+      - stage
+      - prod
+  - name: validate
+    type: boolean
+    displayName: "Run terraform validate or not."
+    default: false
+  - name: dependson
+    type: string
+    displayName: "Stage Dependencies."
+    default: ""
+
+stages:
+  - stage: terraform_plan_${{ parameters.envShortCode }}_kubernetes
+    displayName: "Plan - ${{ parameters.envShortCode }} - kubernetes"
+    variables:
+      - template: "../../vars/${{ parameters.envShortCode }}-vars.yaml"
+    jobs:
+      - template: "../jobs/infra-plan-template.yaml"
+        parameters:
+          envShortCode: ${{ parameters.envShortCode }}
+          subscriptionShortCode: "${{ variables.subscriptionShortCode }}"
+          stateFile: "${{ variables.stateFileKubernetes }}"
+          workDir: "$(System.DefaultWorkingDirectory)"
+          buildId: "$(Build.BuildId)"
+          pathToTFCode: "infrastructure/kubernetes"
+          buildAgentName: "${{ variables.selfBuildAgentName }}"
+          stateDisplayName: "kubernetes"

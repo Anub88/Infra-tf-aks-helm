@@ -1,0 +1,38 @@
+pool:
+  name: HDP Image Analyzer Application Agent
+  demands:
+    - agent.name -equals IAA-BuildAgent
+
+trigger: none
+
+parameters:
+  - name: imageRepository
+    default: aixs-usecase-maringa
+    displayName: Repo Name
+
+variables:
+  - name: containerRegistry
+    value: acr-public-axis-dev-serviceconnection
+  - name: tag
+    value: init_push
+  - name: dockerfilePath
+    value: $(Build.SourcesDirectory)/deployment/azure-pipelines/global/aux-pipelines/dummy_acr_docker/Dockerfile
+
+stages:
+  # This pipeline is created to build and push dummy image to repo of public ACR
+  # This is one time action for each repo
+  - stage: Build
+    displayName: Build and push stage
+    jobs:
+      - job: Build
+        displayName: Build
+        steps:
+          - task: Docker@2
+            displayName: Build and push an image to container registry
+            inputs:
+              command: buildAndPush
+              repository: ${{ parameters.imageRepository }}
+              dockerfile: $(dockerfilePath)
+              containerRegistry: $(containerRegistry)
+              tags: |
+                $(tag)

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: usecase-model
+description: Helm Chart for AIXS usecase-model.
+type: application
+version: 0.1.0

@@ -1,0 +1,54 @@
+# Default values for core-planner.
+
+# Deployment
+registry:
+replicaCount:
+tag:
+
+# NodeSelector
+agentpool: ""
+
+# Service
+servicePort: 8000
+
+# DAPR 
+port: 8000
+
+resources:
+  limits:
+    memory: 16Gi
+    cpu: 1
+  requests:
+    memory: 8Gi
+    cpu: 600m
+
+# Environment Variables - Secrets
+env: 
+  ENV_STATE: 
+  CONFIG_HDP_AUTH_TOKEN_URL:
+  CONFIG_HDP_DEVICE_AUTH_TOKEN_URL:
+  CONFIG_HDP_BASE_URL:
+
+envSecrets:
+  #CONFIG_HDP_SUBSCRIPTION_KEY_DEV_PLANNER:
+  #CONFIG_AZURE_CLIENT_APP_ID:
+  #CONFIG_AZURE_SECRET:
+  #CONFIG_APPREG_AIXS_S2S_HDP_CLIENT_SECRET_DEV_WEUS:
+  #CONFIG_HDP_API_APP_ID:
+  #CONFIG_HDP_TENANT_ID:
+  #CONFIG_APPREG_AIXS_S2S_HDP_CLIENT_ID-DEV-WEUS:
+  ###############
+  CONFIG_AZURE_TENANT_ID:
+  CONFIG_AZURE_CLIENT_APP_ID:
+  CONFIG_AZURE_SECRET:
+  CONFIG_HDP_API_APP_ID:
+  CONFIG_HDP_TENANT_ID:
+  CONFIG_HDP_SUBSCRIPTION_KEY_DEV_PLANNER:
+  CONFIG_HDP_AUTH_USERNAME:
+  CONFIG_HDP_AUTH_PWD:
+  CONFIG_HDP_AUTH_CLIENT:
+  CONFIG_SUBSCRIPTION_KEY:
+  CONFIG_HDP_SUBSCRIPTION_KEY:
+
+
+  

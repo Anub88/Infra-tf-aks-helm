@@ -1,0 +1,55 @@
+parameters:
+  - name: artifactname
+    type: string
+    displayName: "Name of the artifact and working directory"
+    default: "PublishAIXSPythonArtifact"
+  - name: pathprefix
+    type: string
+    displayName: "Path prefix of package"
+    default: "application/inference"
+
+jobs:
+  - job: CreateTestReportAIXSPythonArtifact_${{ parameters.artifactname }}
+    steps:
+      - task: UsePythonVersion@0
+        displayName: "Use Python 3.9"
+        inputs:
+          versionSpec: 3.9
+          addToPath: true
+      #
+      # Authenticate to Azure Artifacts
+      #
+      - task: PipAuthenticate@0
+        displayName: Authenticate with private Python artifact feed
+        inputs:
+          artifactFeeds: 'GEN_Health_Data_Platform/mlware-python-feed'
+      #
+      # Run tests and code coverage
+      #
+      - template: ../python-steps/py-pytest-step-template.yml
+        parameters:
+          dir: $(System.DefaultWorkingDirectory)/${{parameters.pathprefix}}/${{parameters.artifactname}}
+  - job: PublishAIXSPythonArtifact_${{ parameters.artifactname }}
+    dependsOn: CreateTestReportAIXSPythonArtifact_${{ parameters.artifactname }}
+    steps:
+      - task: UsePythonVersion@0
+        displayName: "Use Python 3.9"
+        inputs:
+          versionSpec: 3.9
+          addToPath: true
+      - script: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade twine
+        displayName: "Install Python Twine Dependencies"
+      - script: |
+          python setup.py sdist bdist_wheel
+        displayName: "Artifact Creation"
+        workingDirectory: $(System.DefaultWorkingDirectory)/${{parameters.pathprefix}}/${{parameters.artifactname}}
+      - task: TwineAuthenticate@1
+        displayName: Twine Authenticate
+        inputs:
+          artifactFeed: GEN_Health_Data_Platform/mlware-python-feed
+      - script: |
+          python -m twine upload --skip-existing --verbose -r mlware-python-feed --config-file $(PYPIRC_PATH) dist/*
+        displayName: "Publish Artifact"
+        workingDirectory: $(System.DefaultWorkingDirectory)/${{parameters.pathprefix}}/${{parameters.artifactname}}

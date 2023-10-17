@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "core-manager.fullname" . }}
+  labels:
+    {{- include "core-manager.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "core-manager.selectorLabels" . | nindent 4 }}
+  ports:
+  - port: {{ .Values.servicePort  }}
+    protocol: TCP

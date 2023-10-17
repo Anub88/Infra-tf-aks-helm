@@ -1,0 +1,12 @@
+
+steps:
+  #
+  # Run Polaris code scan
+  #
+  - task: SynopsysPolaris@1
+    displayName: 'Polaris Scan'
+    inputs:
+      polarisService: 'IAA-MED-GEN-POLARIS'
+      polarisCommand: '--co project.name=DQB_AI-ImageAnalyzer analyze'
+      waitForIssues: false
+      populateChangeSetFile: false

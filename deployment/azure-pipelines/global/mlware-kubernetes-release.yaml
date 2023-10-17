@@ -1,0 +1,26 @@
+# Releases for all states and environments.
+
+name: $(Date:yyyyMMdd)$(Rev:.r)-infrastructure-release
+
+trigger:
+  - release*
+
+stages:
+  - template: "templates/stages/plan-kubernetes-template.yaml"
+    parameters:
+      envShortCode: "dev"
+  - template: "templates/stages/release-kubernetes-template.yaml"
+    parameters:
+      envShortCode: "dev"
+  - template: "templates/stages/plan-kubernetes-template.yaml"
+    parameters:
+      envShortCode: "qa"
+  - template: "templates/stages/release-kubernetes-template.yaml"
+    parameters:
+      envShortCode: "qa"
+  - template: "templates/stages/plan-kubernetes-template.yaml"
+    parameters:
+      envShortCode: "stage"
+  - template: "templates/stages/release-kubernetes-template.yaml"
+    parameters:
+      envShortCode: "stage"

@@ -1,0 +1,125 @@
+openapi: 3.0.3
+info:
+  title: Sample AI model web API
+  description: This is a sample web API for AI models of Zeiss Meditec AI models
+  contact:
+    name: MLware support team
+    url: http://www.example.com/support
+    email: support@example.com
+  license:
+    name: Carl Zeiss Meditec AG
+  version: 1.0.0
+
+servers:
+- url: http://{baseUrl}:{port}/{aiProduct}/{version}
+  description: The Azure infrastructure/service, the model is exposed as
+  variables:
+    baseUrl:
+      default: 'localhost'
+    port:
+      default: '9005'
+    aiProduct:
+      default: bscanofinterest
+    version:
+      default: v1
+
+paths:
+  /inference:
+    post:
+      summary: Triggers an inference with given data reference
+      parameters:
+        - in: header
+          name: X-Exam-ID
+          description: ID referencing the medical exam process
+          schema:
+            type: string
+            format: uuid
+          required: true
+        - in: header
+          name: X-InferenceConsumer-ID
+          description: Consumer-related / user ID
+          schema:
+            type: string
+            format: uuid
+          required: true
+        - in: header
+          name: X-Inference-ID
+          description: Inference correlation ID controlled by MLware platform
+          schema:
+            type: string
+            format: uuid
+          required: true
+      requestBody:
+        required: true
+        description: List of references to inference input objects
+        content:
+          application/json:
+            schema:
+              type: array
+              items: 
+                $ref: '#/components/schemas/InferenceInput'
+      responses: 
+        '202':
+          description: Accepted
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Basic check of application availability for monitoring purposes
+      responses: 
+        '200':
+          description: Health response of probe
+
+components:
+  schemas:
+    InferenceInput:
+      type: object
+      description: Inference input with reference to inference data
+      properties:
+        dataBaseUrl:
+          description: Name of the data storage container
+          type: string
+          example: https://storagename.blob.core.windows.net/
+        dataContainer:
+          description: Name of the data storage container
+          type: string
+          example: aiproductname
+        dataDirectory:
+          description: Name of the data directory within the data storage container
+          type: string
+          example: year/month
+        dataFiles:
+          description: Subset of data files in data directory to execute inference on. If no array or empty array provided, all files in data directory are considered for inference
+          example: 54f087a7-249a-41b6-b06e-8b53670d4774
+          type: array
+          items: 
+            type: string
+      required:
+        - dataBaseUrl
+        - dataContainer
+        - dataDirectory
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
